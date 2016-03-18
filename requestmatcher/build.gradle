@@ -1,0 +1,22 @@
+apply plugin: 'com.android.library'
+apply from: "$rootDir/tools/publish.gradle"
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
+    }
+
+    buildTypes { release {} }
+}
+
+dependencies {
+    provided 'junit:junit:4.12'
+    provided 'org.hamcrest:hamcrest-all:1.3'
+    provided "com.squareup.okhttp3:mockwebserver:3.2.0"
+}
+
