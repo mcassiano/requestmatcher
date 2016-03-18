@@ -5,9 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-final class IOReader {
+public final class IOReader {
 
-    static String read(InputStream is) {
+    public static String read(InputStream is) {
 
         if (is == null)
             throw new IllegalArgumentException("Could not open resource stream.");
@@ -32,5 +32,8 @@ final class IOReader {
         }
 
         return builder.append("\n").toString();
+    }
+
+    private IOReader() {
     }
 }

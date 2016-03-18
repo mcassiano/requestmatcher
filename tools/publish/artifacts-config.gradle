@@ -13,6 +13,7 @@ android.libraryVariants.all { variant ->
             source = variant.javaCompile.source
             ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
             classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar)
+            failOnError false
         }
 
         task("bundleJavadoc${outputName}", type: Jar) {

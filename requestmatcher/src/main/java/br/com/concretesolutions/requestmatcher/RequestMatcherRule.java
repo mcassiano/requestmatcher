@@ -42,18 +42,18 @@ public abstract class RequestMatcherRule implements TestRule {
         return requestAssertionStatement(base);
     }
 
-    public RequestMatcher enqueueDisconnect() {
-        return enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
-    }
-
     public RequestMatcher enqueue(MockResponse response) {
         final RequestMatcher requestMatcher = new RequestMatcher();
         final String assertPath = response.hashCode() + "_::_" + requestMatcher.hashCode();
         server.enqueue(response.setHeader(ASSERT_HEADER, assertPath));
-        // Only enqueue request if eveything else passed. An exception thrown here would
+        // Only enqueue request if everything else passed. An exception thrown here would
         // make the request count be different.
         requestAssertions.put(assertPath, requestMatcher);
         return requestMatcher;
+    }
+
+    public RequestMatcher enqueueDisconnect() {
+        return enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
     }
 
     /**
@@ -135,7 +135,11 @@ public abstract class RequestMatcherRule implements TestRule {
         });
     }
 
-    private void after() {
+    private void after(boolean success) {
+
+        if (!success)
+            return;
+
         final int requestQueueSize = requestAssertions.size();
         final int requestCount = server.getRequestCount();
 
@@ -143,8 +147,13 @@ public abstract class RequestMatcherRule implements TestRule {
             if (assertionError != null)
                 throw assertionError;
 
-            if (requestQueueSize != requestCount)
-                fail("Failed assertion. Enqueued " + requestQueueSize + " requests but used " + requestCount + " requests.");
+            if (requestQueueSize != requestCount) {
+                try {
+                    fail("Enqueued " + requestQueueSize + " requests but used " + requestCount + " requests.");
+                } catch (AssertionError e) {
+                    throw new RequestAssertionError("Failed assertion.", e);
+                }
+            }
 
         } finally {
             assertionError = null;
@@ -158,10 +167,12 @@ public abstract class RequestMatcherRule implements TestRule {
             @Override
             public void evaluate() throws Throwable {
                 before();
+                boolean success = false;
                 try {
                     base.evaluate();
+                    success = true;
                 } finally {
-                    after();
+                    after(success);
                 }
             }
         };

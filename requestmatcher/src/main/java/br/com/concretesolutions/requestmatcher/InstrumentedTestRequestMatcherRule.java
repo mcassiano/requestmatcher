@@ -10,6 +10,7 @@ public class InstrumentedTestRequestMatcherRule extends RequestMatcherRule {
     private final Context context;
 
     public InstrumentedTestRequestMatcherRule(Context context) {
+        super();
         this.context = context;
     }
 

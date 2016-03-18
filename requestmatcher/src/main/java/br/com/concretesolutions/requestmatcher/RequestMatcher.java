@@ -1,25 +1,29 @@
 package br.com.concretesolutions.requestmatcher;
 
-import android.util.Pair;
-
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import br.com.concretesolutions.requestmatcher.assertion.BodyAssertion;
 import br.com.concretesolutions.requestmatcher.assertion.RequestAssertion;
+import br.com.concretesolutions.requestmatcher.model.Query;
+import okhttp3.Headers;
 import okhttp3.mockwebserver.RecordedRequest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isEmptyString;
-import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.fail;
 
 public final class RequestMatcher {
 
     public static final String GET = "GET", POST = "POST", DELETE = "DELETE", PUT = "PUT";
 
-    private final Set<Pair<String, String>> expectedQueries = new HashSet<>();
+    private Set<Query> expectedQueries;
+    private Map<String, String> expectedHeaders;
     private RequestAssertion requestAssert;
     private BodyAssertion bodyAssertion;
     private String expectedPath;
@@ -55,7 +59,20 @@ public final class RequestMatcher {
     }
 
     public RequestMatcher assertHasQuery(String key, String value) {
-        expectedQueries.add(Pair.create(key, value));
+
+        if (expectedQueries == null)
+            expectedQueries = new HashSet<>();
+
+        expectedQueries.add(Query.of(key, value));
+        return this;
+    }
+
+    public RequestMatcher assertHasHeader(String key, String value) {
+
+        if (expectedHeaders == null)
+            expectedHeaders = new HashMap<>();
+
+        expectedHeaders.put(key, value);
         return this;
     }
 
@@ -73,34 +90,51 @@ public final class RequestMatcher {
         if (expectedMethod != null)
             assertThat(request.getMethod(), is(expectedMethod));
 
-        final String path = request.getPath();
+        final String path = RequestUtils.getPathOnly(request);
 
         if (expectedPath != null)
             assertThat(path, is(expectedPath));
 
-        queryAssertions(path);
+        queryAssertions(request.getPath());
+        headerAssertions(request.getHeaders());
         bodyAssertions(request);
+    }
+
+    private void headerAssertions(Headers headers) {
+
+        if (expectedHeaders == null || expectedHeaders.isEmpty())
+            return;
+
+        if (headers.size() == 0)
+            fail("Expected headers but found none");
+
+        final Map<String, List<String>> headersMultiMap = headers.toMultimap();
+        final Map<String, List<String>> expectedHeadersMultiMap = Headers.of(expectedHeaders).toMultimap();
+
+        for (Map.Entry<String, List<String>> entry : expectedHeadersMultiMap.entrySet())
+            assertThat(headersMultiMap, hasEntry(entry.getKey(), entry.getValue()));
     }
 
     private void queryAssertions(String path) {
 
-        if (expectedQueries.isEmpty())
+        if (expectedQueries == null || expectedQueries.isEmpty())
             return;
 
         if (!RequestUtils.hasQuery(path))
             fail("Expected query strings but found none");
 
 
-        final Set<Pair<String, String>> allQueries = RequestUtils.buildQueries(path);
-        for (Pair<String, String> query : expectedQueries)
-            assertThat(query, isIn(allQueries));
+        final Set<Query> allQueries = RequestUtils.buildQueries(path);
+
+        for (Query query : expectedQueries)
+            assertThat(allQueries, hasItem(query));
     }
 
     private void bodyAssertions(RecordedRequest request) {
         final String body = RequestUtils.getBody(request);
 
-        if (expectNoBody)
-            assertThat(body, isEmptyString());
+        if (expectNoBody && !"".equals(body))
+            fail("Expected no body but received one");
 
         if (bodyAssertion != null) {
 
