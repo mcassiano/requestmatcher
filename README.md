@@ -24,10 +24,10 @@ The library is available in JCenter repositories. To use it, just declare it in 
 dependencies {
     
     // unit tests
-    testCompile "br.com.concretesolutions:requestmatcher:1.0.0-alpha
+    testCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
 
     // instrumented tests
-    androidTestCompile "br.com.concretesolutions:requestmatcher:1.0.0-alpha
+    androidTestCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
 }
 ```
 
@@ -43,13 +43,13 @@ So, ensure those libraries are also in your dependencies. For example:
 dependencies {
     
     // unit tests
-    testCompile "br.com.concretesolutions:requestmatcher:1.0.0-alpha"
+    testCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile "com.squareup.okhttp3:mockwebserver:3.2.0"
 
     // instrumented tests
-    androidTestCompile "br.com.concretesolutions:requestmatcher:1.0.0-alpha"
+    androidTestCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
     androidTestCompile "com.squareup.okhttp3:mockwebserver:3.2.0"
     androidTestCompile "com.android.support.test.espresso:espresso-core:2.2.2" // this already has hamcrest
     androidTestCompile "com.android.support.test:runner:0.5" // this already has junit
