@@ -2,7 +2,7 @@
 
 A simple and powerful way for making assertions in your mocked API.
 
-To properly test an Android Application we must isolate all the external dependencies that we can't control. Normally, in a client/server application, this boils down to the API calls. 
+To properly test an Android Application we must isolate all the external dependencies that we can't control. Normally, in a client/server application, this boils down to the API calls.
 
 There are several approaches to mocking the server interaction:
 
@@ -12,7 +12,7 @@ There are several approaches to mocking the server interaction:
 
 All of the above makes testing APIs possible though not highly configurable on a *per test* basis. There is another (and probably many others) approach:
 
-- Use a mock web server: a real server responding to requests that you set up on your test to the expected behaviour. 
+- Use a mock web server: a real server responding to requests that you set up on your test to the expected behaviour.
 
 This approach is nice though may generate lots of code in your tests to setup proper request assertions. This library tries to simplify that and add some other automatic detection of wrong doings in tests setup.
 
@@ -22,7 +22,7 @@ The library is available in JCenter repositories. To use it, just declare it in 
 
 ``` groovy
 dependencies {
-    
+
     // unit tests
     testCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
 
@@ -41,7 +41,7 @@ So, ensure those libraries are also in your dependencies. For example:
 
 ``` groovy
 dependencies {
-    
+
     // unit tests
     testCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
     testCompile 'junit:junit:4.12'
@@ -69,25 +69,25 @@ public class UnitTest {
     @Before
     public void setUp() {
         // Setup your application to point to this rootUrl
-        final String rootUrl = serverRule.url("/").toString(); 
-        
+        final String rootUrl = serverRule.url("/").toString();
+
         // do setup
     }
-    
+
     @Test
     public void canMakeRequestAssertions() {
-        
+
         serverRule.enqueue(200, "body.json")
             .assertPathIs("/somepath")
             .assertNoBody()
-            .assertMethodId(RequestMatcher.GET);
-            
+            .assertMethodIs(RequestMatcher.GET);
+
         // make interaction with the server
     }
 }
 ```
 
-In this example, several things are checked: 
+In this example, several things are checked:
 
 - The test *MUST* make exclusively *ONE* request to the mock server or else it will fail.
 - The request must be a GET or else it will fail.
