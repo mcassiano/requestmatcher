@@ -431,7 +431,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfEnqueuedRequestsAreNotUsed() {
         exceptionRule.expect(RequestAssertionError.class);
-        exceptionRule.expectMessage(containsString("Failed assertion. Enqueued 1 requests but used 0 requests."));
+        exceptionRule.expectMessage(containsString("Failed assertion. There are enqueued requests that were not used."));
         server.enqueuePUT(200, "body.json");
     }
 }
