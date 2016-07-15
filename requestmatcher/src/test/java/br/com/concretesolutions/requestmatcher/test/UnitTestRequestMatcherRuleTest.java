@@ -5,6 +5,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
@@ -32,14 +33,14 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 @RunWith(RobolectricGradleTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = 16)
+@Config(constants = BuildConfig.class, sdk = 23)
 public class UnitTestRequestMatcherRuleTest {
 
     public ExpectedException exceptionRule = ExpectedException.none();
     public RequestMatcherRule server = new UnitTestRequestMatcherRule();
 
     @Rule
-    public RuleChain chain = RuleChain
+    public TestRule chain = RuleChain
             .outerRule(exceptionRule)
             .around(server);
 
@@ -76,10 +77,7 @@ public class UnitTestRequestMatcherRuleTest {
     public void failsIfExpectedNoBodyButOneWasProvided() throws IOException {
 
         exceptionRule.expect(RequestAssertionError.class);
-        exceptionRule.expectMessage(
-                allOf(
-                        containsString("Expected: an empty string"),
-                        containsString("but: was \"{}\"")));
+        exceptionRule.expectMessage(containsString("Expected no body but received one"));
 
         server.enqueue(200, "body.json")
                 .assertNoBody(); // NO BODY
@@ -435,7 +433,7 @@ public class UnitTestRequestMatcherRuleTest {
     @Test
     public void failsIfEnqueuedRequestsAreNotUsed() {
         exceptionRule.expect(RequestAssertionError.class);
-        exceptionRule.expectMessage(containsString("Failed assertion. Enqueued 1 requests but used 0 requests."));
+        exceptionRule.expectMessage(containsString("Failed assertion. There are enqueued requests that were not used."));
         server.enqueuePUT(200, "body.json");
     }
 }

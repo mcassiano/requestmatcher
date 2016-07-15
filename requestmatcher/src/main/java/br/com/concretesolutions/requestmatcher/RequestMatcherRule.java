@@ -6,74 +6,100 @@ import org.junit.runners.model.Statement;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
 
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.QueueDispatcher;
-import okhttp3.mockwebserver.RecordedRequest;
-import okhttp3.mockwebserver.SocketPolicy;
 
 import static org.junit.Assert.fail;
 
+/**
+ * A wrapping rule around {@link MockWebServer} to ease mocking. This provides: <ul> <li>Fixtures
+ * setup: you can have a folder named fixtures in your resources and this rule will load them for
+ * you and put them in your response's body</li> <li>Status code setup: you can pass a response's
+ * status code when enqueuing</li> <li>Request assertions: when enqueuing you can add assertions to
+ * ensure that the request arrived is the one expected.</li> </ul>
+ * <p>
+ * This rule provides helper methods for enqueuing responses with the corresponding request's
+ * assertions. When using one of the enqueue methods here the return is a {@link RequestMatcher}
+ * instance for easy method chaining.
+ *
+ * @see TestRule
+ * @see MockWebServer
+ * @see RequestMatcher
+ */
 public abstract class RequestMatcherRule implements TestRule {
 
-    private static final String ASSERT_HEADER = "REQUEST-ASSERT", ERROR_MESSAGE = "Failed assertion for %s";
-
-    private final Map<String, RequestMatcher> requestAssertions = new HashMap<>();
+    private final MatcherQueueDispatcher dispatcher = new MatcherQueueDispatcher();
     private final MockWebServer server;
+    private final String fixturesRootFolder;
 
-    private RequestAssertionError assertionError;
-
+    /**
+     * Creates a rule with a new instance of {@link MockWebServer} and no logging of request lines.
+     * This will by default look for fixtures in the "fixtures" folder.
+     */
     public RequestMatcherRule() {
         this(new MockWebServer());
     }
 
-    public RequestMatcherRule(MockWebServer server) {
-        this.server = server;
+    /**
+     * Creates a rule with a new instance of {@link MockWebServer} and no logging of request lines.
+     *
+     * @param fixturesRootFolder The root folder to look for fixtures. Defaults to "fixtures"
+     */
+    public RequestMatcherRule(String fixturesRootFolder) {
+        this(new MockWebServer(), fixturesRootFolder);
     }
 
+    /**
+     * Creates a rule with the given instance of {@link MockWebServer} and no logging of request
+     * lines. This will by default look for fixtures in the "fixtures" folder.
+     *
+     * @param server The {@link MockWebServer} instance
+     */
+    public RequestMatcherRule(MockWebServer server) {
+        this(server, "fixtures");
+    }
+
+    public RequestMatcherRule(MockWebServer server, String fixturesRootFolder) {
+        this.server = server;
+        this.fixturesRootFolder = fixturesRootFolder;
+    }
+
+    // implemented by Unit and Instrumented dispatchers to find fixtures folder
     protected abstract InputStream open(String path) throws IOException;
 
     @Override
     public Statement apply(Statement base, Description description) {
-        return requestAssertionStatement(base);
+        return server.apply(requestAssertionStatement(base), description);
+    }
+
+    public HttpUrl url(String path) {
+        return server.url(path);
+    }
+
+    public MockWebServer getMockWebServer() {
+        return server;
+    }
+
+    public String readFixture(final String assetPath) {
+        try {
+            return IOReader.read(open(fixturesRootFolder + "/" + assetPath)) + "\n";
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read asset with path " + assetPath, e);
+        }
     }
 
     public RequestMatcher enqueue(MockResponse response) {
-        final RequestMatcher requestMatcher = new RequestMatcher();
-        final String assertPath = response.hashCode() + "_::_" + requestMatcher.hashCode();
-        server.enqueue(response.setHeader(ASSERT_HEADER, assertPath));
-        // Only enqueue request if everything else passed. An exception thrown here would
-        // make the request count be different.
-        requestAssertions.put(assertPath, requestMatcher);
-        return requestMatcher;
+        return dispatcher.enqueue(response);
     }
 
-    public RequestMatcher enqueueDisconnect() {
-        return enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
-    }
-
-    /**
-     * Helper method to enqueueNoBody a mock response without body.
-     *
-     * @param statusCode status code of response
-     */
     public RequestMatcher enqueueNoBody(int statusCode) {
         return enqueue(new MockResponse()
                 .setResponseCode(statusCode)
                 .setBody(""));
     }
 
-    /**
-     * Helper method to enqueue a mock response.
-     * Uses {@link IOReader#read(InputStream)} (String)} to read json from assetPath.
-     *
-     * @param statusCode status code of response
-     * @param assetPath  Path inside the "json" folder in androidTest/assets
-     */
     public RequestMatcher enqueue(int statusCode, String assetPath) {
         return enqueue(new MockResponse()
                 .setResponseCode(statusCode)
@@ -104,85 +130,47 @@ public abstract class RequestMatcherRule implements TestRule {
         return enqueue(statusCode, assetPath).assertMethodIs(RequestMatcher.PUT);
     }
 
-    public HttpUrl url(String path) {
-        return server.url(path);
+    public RequestMatcher enqueueDELETE(int statusCode) {
+        return enqueueNoBody(statusCode).assertMethodIs(RequestMatcher.PUT);
     }
 
-    public MockWebServer getMockWebServer() {
-        return server;
-    }
-
-    private void before() {
-        this.server.setDispatcher(new QueueDispatcher() {
-            @Override
-            public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
-
-                final MockResponse response = super.dispatch(request);
-
-                final RequestMatcher matcher = requestAssertions.get(response.getHeaders().get("REQUEST-ASSERT"));
-
-                if (matcher != null)
-                    try {
-                        matcher.doAssert(request);
-                    } catch (AssertionError e) {
-                        final String message = String.format(ERROR_MESSAGE, request);
-                        RequestMatcherRule.this.assertionError = new RequestAssertionError(message, e);
-                        return new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END);
-                    }
-
-                return response;
-            }
-        });
+    public RequestMatcher enqueueDELETE(int statusCode, String assetPath) {
+        return enqueue(statusCode, assetPath).assertMethodIs(RequestMatcher.PUT);
     }
 
     private void after(boolean success) {
 
+        if (dispatcher.getAssertionError() != null)
+            throw dispatcher.getAssertionError();
+
         if (!success)
             return;
 
-        final int requestQueueSize = requestAssertions.size();
-        final int requestCount = server.getRequestCount();
-
-        try {
-            if (assertionError != null)
-                throw assertionError;
-
-            if (requestQueueSize != requestCount) {
-                try {
-                    fail("Enqueued " + requestQueueSize + " requests but used " + requestCount + " requests.");
-                } catch (AssertionError e) {
-                    throw new RequestAssertionError("Failed assertion.", e);
-                }
+        if (dispatcher.getQueue().size() != 0) {
+            try {
+                fail("There are enqueued requests that were not used.");
+            } catch (AssertionError e) {
+                throw new RequestAssertionError("Failed assertion.", e);
             }
-
-        } finally {
-            assertionError = null;
-            requestAssertions.clear();
         }
     }
 
     private Statement requestAssertionStatement(final Statement base) {
 
         return new Statement() {
+
             @Override
             public void evaluate() throws Throwable {
-                before();
+                server.setDispatcher(dispatcher);
                 boolean success = false;
                 try {
                     base.evaluate();
                     success = true;
+
                 } finally {
                     after(success);
                 }
             }
         };
-    }
-
-    private String readFixture(final String assetPath) {
-        try {
-            return IOReader.read(open("fixtures/" + assetPath));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read asset with path " + assetPath, e);
-        }
     }
 }

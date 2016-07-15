@@ -1,1 +1,1 @@
-include ':requestmatcher', ':requestmatcher.sample'
+include ':requestmatcher', ':sample'
