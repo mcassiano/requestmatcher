@@ -1,6 +1,5 @@
 package br.com.concretesolutions.requestmatcher.test;
 
-import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 
 import org.junit.Before;
@@ -14,7 +13,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import br.com.concretesolutions.requestmatcher.InstrumentedTestRequestMatcherRule;
-import br.com.concretesolutions.requestmatcher.RequestAssertionError;
+import br.com.concretesolutions.requestmatcher.RequestAssertionException;
 import br.com.concretesolutions.requestmatcher.RequestMatcher;
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.assertion.BodyAssertion;
@@ -35,7 +34,7 @@ import static org.hamcrest.Matchers.is;
 public class InstrumentedTestRequestMatcherRuleTest {
 
     public ExpectedException exceptionRule = ExpectedException.none();
-    public RequestMatcherRule server = new InstrumentedTestRequestMatcherRule(InstrumentationRegistry.getContext());
+    public RequestMatcherRule server = new InstrumentedTestRequestMatcherRule();
 
     @Rule
     public RuleChain chain = RuleChain
@@ -74,7 +73,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfExpectedNoBodyButOneWasProvided() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(containsString("Expected no body but received one"));
 
         server.enqueue(200, "body.json")
@@ -91,7 +90,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfExpectedPathIsDifferent() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: is \"/post\""),
@@ -111,7 +110,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfExpectedQueryDoesNotExist() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: a collection containing <Query{key=value}>"),
@@ -167,7 +166,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfExpectedHeaderDoesNotExist() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: map containing [\"key\"-><[value]>]"),
@@ -210,7 +209,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfBodyAssertionFails() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: a string containing \"\\\"property\\\": \\\"value\\\"\""),
@@ -262,7 +261,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failIfAnyOfTheAssertionsFail() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: a string containing \"\\\"property\\\": \\\"value\\\"\""),
@@ -315,7 +314,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfRequestAssertionFails() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: is \"GET\""),
@@ -341,7 +340,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfNoBodyWasExpectedButReceivedOne() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(containsString("Expected no body but received one"));
 
         server.enqueue(200, "body.json").assertNoBody();
@@ -357,7 +356,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfNoQueryWasPassedButExpectedOne() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(containsString("Expected query strings but found none"));
 
         server.enqueue(200, "body.json")
@@ -374,7 +373,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfHelperGETMethodFails() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: is \"GET\""),
@@ -393,7 +392,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfHelperPOSTMethodFails() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: is \"POST\""),
@@ -412,7 +411,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
     @Test
     public void failsIfHelperPUTMethodFails() throws IOException {
 
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
                         containsString("Expected: is \"PUT\""),
@@ -430,7 +429,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
 
     @Test
     public void failsIfEnqueuedRequestsAreNotUsed() {
-        exceptionRule.expect(RequestAssertionError.class);
+        exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(containsString("Failed assertion. There are enqueued requests that were not used."));
         server.enqueuePUT(200, "body.json");
     }

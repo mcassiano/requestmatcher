@@ -22,7 +22,7 @@ public class MatcherQueueDispatcher extends Dispatcher {
     protected final BlockingQueue<MatcherMockResponse> responseQueue = new LinkedBlockingQueue<>();
     private final MockResponse disconnectResponse = new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START);
     private MockResponse failFastResponse;
-    private RequestAssertionError assertionError;
+    private RequestAssertionException assertionError;
 
     public BlockingQueue<MatcherMockResponse> getQueue() {
         return responseQueue;
@@ -49,7 +49,7 @@ public class MatcherQueueDispatcher extends Dispatcher {
             try {
                 matcher.doAssert(request);
             } catch (AssertionError e) {
-                this.assertionError = new RequestAssertionError(String.format(ERROR_MESSAGE, request), e);
+                this.assertionError = new RequestAssertionException(String.format(ERROR_MESSAGE, request), e);
                 return new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END);
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "Error while doing assert", e);
@@ -79,7 +79,10 @@ public class MatcherQueueDispatcher extends Dispatcher {
     }
 
     public RequestMatcher enqueue(MockResponse response) {
-        final RequestMatcher requestMatcher = new RequestMatcher();
+        return enqueue(response, new RequestMatcher());
+    }
+
+    public <T extends RequestMatcher> T enqueue(MockResponse response, T requestMatcher) {
         final String assertPath = response.hashCode() + "::" + System.identityHashCode(requestMatcher);
         responseQueue.add(new MatcherMockResponse(requestMatcher, response.setHeader(ASSERT_HEADER, assertPath)));
         return requestMatcher;
@@ -89,7 +92,7 @@ public class MatcherQueueDispatcher extends Dispatcher {
         return enqueue(disconnectResponse);
     }
 
-    public RequestAssertionError getAssertionError() {
+    public RequestAssertionException getAssertionException() {
         return assertionError;
     }
 }

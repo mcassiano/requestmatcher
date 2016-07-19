@@ -12,10 +12,6 @@ public final class RequestUtils {
         return path.contains("?");
     }
 
-    public static String getBody(RecordedRequest request) {
-        return request.getBody().readUtf8();
-    }
-
     public static Set<Query> buildQueries(String path) {
         final Set<Query> queries = new HashSet<>();
         final String queryString = path.substring(path.indexOf('?') + 1);

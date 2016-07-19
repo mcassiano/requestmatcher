@@ -14,11 +14,15 @@ import okhttp3.mockwebserver.MockWebServer;
 import static org.junit.Assert.fail;
 
 /**
- * A wrapping rule around {@link MockWebServer} to ease mocking. This provides: <ul> <li>Fixtures
+ * A wrapping rule around {@link MockWebServer} to ease mocking. This provides:
+ * <ul>
+ * <li>Fixtures
  * setup: you can have a folder named fixtures in your resources and this rule will load them for
- * you and put them in your response's body</li> <li>Status code setup: you can pass a response's
- * status code when enqueuing</li> <li>Request assertions: when enqueuing you can add assertions to
- * ensure that the request arrived is the one expected.</li> </ul>
+ * you and put them in your response's body</li>
+ * <li>Status code setup: you can pass a response's status code when enqueuing</li>
+ * <li>Request assertions: when enqueuing you can add assertions to
+ * ensure that the request arrived is the one expected.</li>
+ * </ul>
  * <p>
  * This rule provides helper methods for enqueuing responses with the corresponding request's
  * assertions. When using one of the enqueue methods here the return is a {@link RequestMatcher}
@@ -74,6 +78,12 @@ public abstract class RequestMatcherRule implements TestRule {
         return server.apply(requestAssertionStatement(base), description);
     }
 
+    /**
+     * Returns the complete url of the relative path.
+     *
+     * @param path A relative path. For example: "/" would return http://localhost:<portnumber></portnumber>/
+     * @return An OkHttp URL
+     */
     public HttpUrl url(String path) {
         return server.url(path);
     }
@@ -82,18 +92,51 @@ public abstract class RequestMatcherRule implements TestRule {
         return server;
     }
 
-    public String readFixture(final String assetPath) {
+    /**
+     * Used to read fixtures. This combines the fixturesRootFolder with the passed fixturePath to
+     * find the file to read.
+     *
+     * @param fixturePath Relative path
+     * @return The contents of the fixture
+     */
+    public String readFixture(final String fixturePath) {
         try {
-            return IOReader.read(open(fixturesRootFolder + "/" + assetPath)) + "\n";
+            return IOReader.read(open(fixturesRootFolder + "/" + fixturePath)) + "\n";
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read asset with path " + assetPath, e);
+            throw new RuntimeException("Failed to read asset with path " + fixturePath, e);
         }
     }
 
+    /**
+     * Enqueues a MockResponse in the dispatcher. This creates a default RequestMatcher that can be
+     * then configured to assert on the received request.
+     *
+     * @param response The mocked response to enqueue in order.
+     * @return RequestMatcher instance for method chaining
+     */
     public RequestMatcher enqueue(MockResponse response) {
         return dispatcher.enqueue(response);
     }
 
+    /**
+     * Same as {@link #enqueue(MockResponse)} but accepts an instance of a class that extends
+     * {@link RequestMatcher} that may contain custom assertions.
+     *
+     * @param response The mocked response to enqueue in order.
+     * @param matcher  A custom {@link RequestMatcher}
+     * @return RequestMatcher instance for method chaining. This is the same instance passed as an
+     * argument
+     */
+    public <T extends RequestMatcher> T enqueue(MockResponse response, T matcher) {
+        return dispatcher.enqueue(response, matcher);
+    }
+
+    /**
+     * Helper method for enqueuing a no body response. No body means an empty body.
+     *
+     * @param statusCode The status code of the response.
+     * @return RequestMatcher instance for method chaining
+     */
     public RequestMatcher enqueueNoBody(int statusCode) {
         return enqueue(new MockResponse()
                 .setResponseCode(statusCode)
@@ -138,19 +181,32 @@ public abstract class RequestMatcherRule implements TestRule {
         return enqueue(statusCode, assetPath).assertMethodIs(RequestMatcher.PUT);
     }
 
-    private void after(boolean success) {
+    private void after(Exception exception, boolean success) throws Exception {
 
-        if (dispatcher.getAssertionError() != null)
-            throw dispatcher.getAssertionError();
+        if (dispatcher.getAssertionException() != null) {
 
-        if (!success)
+            // if there was an exception in the test (for example a NPE) we print it before throwing
+            // the request assertion. This might help debug where the test is failing.
+            // We can't simply add it as suppressed as it was added only in API 19.
+            if (exception != null)
+                exception.printStackTrace();
+
+            throw dispatcher.getAssertionException();
+        }
+
+        if (!success) {
+
+            if (exception != null)
+                throw exception;
+
             return;
+        }
 
         if (dispatcher.getQueue().size() != 0) {
             try {
                 fail("There are enqueued requests that were not used.");
             } catch (AssertionError e) {
-                throw new RequestAssertionError("Failed assertion.", e);
+                throw new RequestAssertionException("Failed assertion.", e);
             }
         }
     }
@@ -167,8 +223,10 @@ public abstract class RequestMatcherRule implements TestRule {
                     base.evaluate();
                     success = true;
 
+                } catch (Exception e) {
+                    after(e, success);
                 } finally {
-                    after(success);
+                    after(null, success);
                 }
             }
         };

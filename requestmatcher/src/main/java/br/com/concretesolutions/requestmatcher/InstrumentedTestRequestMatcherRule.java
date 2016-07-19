@@ -1,20 +1,34 @@
 package br.com.concretesolutions.requestmatcher;
 
-import android.content.Context;
+import android.support.test.InstrumentationRegistry;
 
 import java.io.IOException;
 import java.io.InputStream;
 
+import okhttp3.mockwebserver.MockWebServer;
+
+/**
+ * A rule for instrumented tests.
+ */
 public class InstrumentedTestRequestMatcherRule extends RequestMatcherRule {
 
-    private final Context context;
+    public InstrumentedTestRequestMatcherRule() {
+    }
 
-    public InstrumentedTestRequestMatcherRule(Context context) {
-        this.context = context;
+    public InstrumentedTestRequestMatcherRule(String fixturesRootFolder) {
+        super(fixturesRootFolder);
+    }
+
+    public InstrumentedTestRequestMatcherRule(MockWebServer server) {
+        super(server);
+    }
+
+    public InstrumentedTestRequestMatcherRule(MockWebServer server, String fixturesRootFolder) {
+        super(server, fixturesRootFolder);
     }
 
     @Override
     protected InputStream open(String path) throws IOException {
-        return context.getAssets().open(path);
+        return InstrumentationRegistry.getContext().getAssets().open(path);
     }
 }

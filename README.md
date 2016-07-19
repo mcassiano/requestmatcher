@@ -46,11 +46,11 @@ dependencies {
     testCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
-    testCompile "com.squareup.okhttp3:mockwebserver:3.2.0"
+    testCompile "com.squareup.okhttp3:mockwebserver:3.4.1"
 
     // instrumented tests
     androidTestCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
-    androidTestCompile "com.squareup.okhttp3:mockwebserver:3.2.0"
+    androidTestCompile "com.squareup.okhttp3:mockwebserver:3.4.1"
     androidTestCompile "com.android.support.test.espresso:espresso-core:2.2.2" // this already has hamcrest
     androidTestCompile "com.android.support.test:runner:0.5" // this already has junit
 }
@@ -64,7 +64,7 @@ The core API of this library is centered around the class `RequestMatcherRule`. 
 public class UnitTest {
 
     @Rule
-    public final RequestMatcherRule serverRule = new UnitTestRequestMatcherRule();
+    public final RequestMatcherRule serverRule = new JVMTestRequestMatcherRule();
 
     @Before
     public void setUp() {
@@ -109,25 +109,25 @@ This will enqueue a response with status code 200 and the contents of the file `
 - Unit tests: these are run in the JVM (usually with Robolectric) and follow different conventions. Your source folder `test` may contain a folder `java` and a fodler `resources`. When you compile your code it takes everything in the `resources` folder and puts in the root of your `.class` files. So, your fixtures folder must go inside `resources` folder.
 - Instrumented tests: there are run in a device or emulator (usually with Espresso or Robotium). It follows the android fodler layout and so you may have an assets folder inside your `androidTest` folder. Your `fixtures` folder must go there.
 
-Because of these differences, there are two implementations of `RequestMatcherRule`: `UnitTestRequestMatcherRule` and `InstrumentedTestRequestMatcherRule`. You should use the generic type for your variable and instantiate it with the required type. Example:
+Because of these differences, there are two implementations of `RequestMatcherRule`: `JVMTestRequestMatcherRule` and `InstrumentedTestRequestMatcherRule`. You should use the generic type for your variable and instantiate it with the required type. Example:
 
 ``` java
 // Unit Test
 @Rule
-public RequestMatcherRule server = new UnitTestRequestMatcherRule();
+public RequestMatcherRule server = new JVMTestRequestMatcherRule();
 
 // or
 
 // Instrumented Test
 @Rule
-public RequestMatcherRule server = new InstrumentedTestRequestMatcherRule(InstrumentationRegistry.getContext());
+public RequestMatcherRule server = new InstrumentedTestRequestMatcherRule();
 ```
 
 The difference is that when we run an InstrumentedTest, we must pass the instrumentation context (and *NOT* the target context).
 
-## RequestAssertionError
+## RequestAssertionException
 
-When an assertion fails, it throws a `RequestAssertionError`. Of course, this happens in the server thread and so, if we throw an exception from there the client will hang and most likely receive a timeout. This would make tests last too long an dconsequently the test suite. To avoid this, the assertion is buffered and the response is delivered as if it were disconnected. The response is like the snippet below:
+When an assertion fails, it throws a `RequestAssertionException`. Of course, this happens in the server thread and so, if we throw an exception from there the client will hang and most likely receive a timeout. This would make tests last too long an dconsequently the test suite. To avoid this, the assertion is buffered and the response is delivered as if it were disconnected. The response is like the snippet below:
 
 ``` java
 new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END);
@@ -162,6 +162,22 @@ Ensures request does not have a body.
 ### .assertRequest(RequestAssertion requestAssertion)
 
 Gives access to the whole request in a SAM interface. You can make any assertion in there.
+
+## Custom `RequestMatcher`
+
+The library is flexible enough for customizing the `RequestMatcher` implementation you want to use. To do that, use the method `RequestMatcher enqueue(MockResponse response, RequestMatcher matcher)`.
+
+All iss needed is to pass a class that extends `RequestMatcher`. With that you can provide your own assertions, for example, you can create assertions according to some custom protocol. This is more useful for those not following strict RESTful architectures.
+
+Example:
+
+``` java
+CustomMatcher matcher = server.enqueue(new MockResponse().setBody("Some body"), new CustomMatcher());
+```
+
+## Other examples
+
+For more examples, please check the tests in the library module and the sample module.
 
 ## LICENSE
 

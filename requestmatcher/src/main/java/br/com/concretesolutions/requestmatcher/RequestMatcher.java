@@ -18,9 +18,15 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
-public final class RequestMatcher {
+public class RequestMatcher {
 
-    public static final String GET = "GET", POST = "POST", DELETE = "DELETE", PUT = "PUT";
+    public static final String GET = "GET",
+            POST = "POST",
+            DELETE = "DELETE",
+            PUT = "PUT",
+            PATCH = "PATCH",
+            HEAD = "HEAD",
+            OPTIONS = "OPTIONS";
 
     private Set<Query> expectedQueries;
     private Map<String, String> expectedHeaders;
@@ -97,7 +103,7 @@ public final class RequestMatcher {
 
         queryAssertions(request.getPath());
         headerAssertions(request.getHeaders());
-        bodyAssertions(request);
+        bodyAssertions(request.getBody().clone().readUtf8());
     }
 
     private void headerAssertions(Headers headers) {
@@ -130,8 +136,7 @@ public final class RequestMatcher {
             assertThat(allQueries, hasItem(query));
     }
 
-    private void bodyAssertions(RecordedRequest request) {
-        final String body = RequestUtils.getBody(request);
+    private void bodyAssertions(String body) {
 
         if (expectNoBody && !"".equals(body))
             fail("Expected no body but received one");
