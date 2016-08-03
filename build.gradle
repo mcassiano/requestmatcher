@@ -19,7 +19,7 @@ allprojects {
 
 ext {
     compileSdkVersion = 23
-    buildToolsVersion = "23.0.2"
+    buildToolsVersion = "23.0.3"
     minSdkVersion = 15
     targetSdkVersion = 23
     versionCode = Integer.parseInt(VERSION_CODE)
