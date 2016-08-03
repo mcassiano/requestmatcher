@@ -1,6 +1,8 @@
 // Bintray
 final Properties localConfig = new Properties()
-localConfig.load(file("$rootDir/local.properties").newDataInputStream())
+
+if (file("$rootDir/local.properties").exists())
+    localConfig.load(file("$rootDir/local.properties").newDataInputStream())
 
 apply from: "$rootDir/tools/publish/maven-config.gradle"
 apply from: "$rootDir/tools/publish/artifacts-config.gradle"

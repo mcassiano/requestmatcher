@@ -10,5 +10,5 @@ android:
     - sys-img-x86-android-23
 
 script:
-  - ./gradlew check test connectedCheck
+  - ./gradlew check testDebug connectedDebugAndroidTest
 
