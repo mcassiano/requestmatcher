@@ -1,5 +1,7 @@
 # RequestMatcher
 
+[![Build Status](https://circleci.com/gh/concretesolutions/requestmatcher.png?circle-token=b28528473dcb6c076cc1b91a3023f411fc78790a)](https://circleci.com/gh/concretesolutions/requestmatcher/tree/master)
+
 A simple and powerful way for making assertions in your mocked API.
 
 To properly test an Android Application we must isolate all the external dependencies that we can't control. Normally, in a client/server application, this boils down to the API calls.
