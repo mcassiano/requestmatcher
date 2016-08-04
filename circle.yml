@@ -11,13 +11,7 @@ dependencies:
         - ANDROID_HOME=/usr/local/android-sdk-linux ./gradlew dependencies
 
 test:
-    pre:
-        - emulator -avd circleci-android23 -no-audio -no-window:
-            background: true
-            parallel: true
-        - circle-android wait-for-boot
     override:
-        - ./gradlew testDebug connectedDebugAndroidTest --console=plain --stacktrace --info
-        - cp -r sample/build/outputs/androidTest-results/* $CIRCLE_TEST_REPORTS
+        - ./gradlew testDebug --console=plain --stacktrace --info
         - cp -r requestmatcher/build/test-results/debug/* $CIRCLE_TEST_REPORTS
         - cp -r requestmatcher/build/outputs $CIRCLE_ARTIFACTS
