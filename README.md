@@ -2,7 +2,7 @@
 
 A simple and powerful way for making assertions in your mocked API.
 
-To properly test an Android Application we must isolate all the external dependencies that we can't control. Normally, in a client/server application, this boils down to the API calls.
+To properly test an Android application we must isolate all the external dependencies that we can't control. Normally, in a client/server application, this boils down to the API calls.
 
 There are several approaches to mocking the server interaction:
 
@@ -36,6 +36,7 @@ This library depends on the following libraries:
 - [MockWebServer](https://github.com/square/okhttp/tree/master/mockwebserver): this is the mock server implementation from Square.
 - [JUnit 4](http://junit.org/): the test runner library
 - [Hamcrest](http://hamcrest.org/JavaHamcrest/): a generic Java assert library
+- [Json Path (optional for Json matching)](https://github.com/jayway/JsonPath)
 
 So, ensure those libraries are also in your dependencies. For example:
 
@@ -47,12 +48,14 @@ dependencies {
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
     testCompile "com.squareup.okhttp3:mockwebserver:3.4.1"
+    testCompile 'com.jayway.jsonpath:json-path-assert:2.2.0' // optional
 
     // instrumented tests
     androidTestCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
     androidTestCompile "com.squareup.okhttp3:mockwebserver:3.4.1"
     androidTestCompile "com.android.support.test.espresso:espresso-core:2.2.2" // this already has hamcrest
     androidTestCompile "com.android.support.test:runner:0.5" // this already has junit
+    androidTestCompile 'com.jayway.jsonpath:json-path-assert:2.2.0' // optional
 }
 ```
 
@@ -64,7 +67,7 @@ The core API of this library is centered around the class `RequestMatcherRule`. 
 public class UnitTest {
 
     @Rule
-    public final RequestMatcherRule serverRule = new JVMTestRequestMatcherRule();
+    public final RequestMatcherRule serverRule = new LocalTestRequestMatcherRule();
 
     @Before
     public void setUp() {
@@ -77,10 +80,11 @@ public class UnitTest {
     @Test
     public void canMakeRequestAssertions() {
 
-        serverRule.enqueue(200, "body.json")
-            .assertPathIs("/somepath")
-            .assertNoBody()
-            .assertMethodIs(RequestMatcher.GET);
+        serverRule.addFixture(200, "body.json")
+            .ifRequestMatches()
+            .pathIs("/somepath")
+            .hasEmptyBody()
+            .methodIs(HttpMethod.GET);
 
         // make interaction with the server
     }
@@ -96,20 +100,28 @@ In this example, several things are checked:
 
 We think this declarative way of making assertions on requests will make tests more consistent with expected behaviour.
 
-### Enqueing responses
+### Adding `MockResponse`s
 
-To enqueue a response all you have to do is call one of the enqueue methods in the `RequestMatcherRule`. Some of them have the ability to read a fixture built-in. That means you can save your mocks in a folder and load them up while you are enqueuing. Example:
+To add a `MockResponse` all you have to do is call one of the `addResponse` methods from the server rule.
 
 ``` java
-serverRule.enqueue(200, "body.json")
+serverRule.addResponse(new MockResponse().setResponseCode(500));
 ```
 
-This will enqueue a response with status code 200 and the contents of the file `body.json` as the body. This file *MUST* be located in a folder with name `fixtures`. This folder works different for Unit Tests and Instrumented Tests.
+### Adding fixtures
 
-- Unit tests: these are run in the JVM (usually with Robolectric) and follow different conventions. Your source folder `test` may contain a folder `java` and a fodler `resources`. When you compile your code it takes everything in the `resources` folder and puts in the root of your `.class` files. So, your fixtures folder must go inside `resources` folder.
+To add a fixture all you have to do is call one of the `addFixture` methods in the `RequestMatcherRule`. That means you can save your mocks in a folder and load them up while you are mocking the API. Example:
+
+``` java
+serverRule.addFixture(200, "body.json");
+```
+
+This will add a response with status code 200 and the contents of the file `body.json` as the body. This file, by default, must be located in a folder with name `fixtures`. This folder works different for Unit Tests and Instrumented Tests.
+
+- Unit tests: these are run locally in the JVM (usually with Robolectric) and follow different conventions. Your source folder `test` may contain a folder `java` and a fodler `resources`. When you compile your code it takes everything in the `resources` folder and puts in the root of your `.class` files. So, your fixtures folder must go inside `resources` folder.
 - Instrumented tests: there are run in a device or emulator (usually with Espresso or Robotium). It follows the android fodler layout and so you may have an assets folder inside your `androidTest` folder. Your `fixtures` folder must go there.
 
-Because of these differences, there are two implementations of `RequestMatcherRule`: `JVMTestRequestMatcherRule` and `InstrumentedTestRequestMatcherRule`. You should use the generic type for your variable and instantiate it with the required type. Example:
+Because of these differences, there are two implementations of `RequestMatcherRule`: `LocalTestRequestMatcherRule` and `InstrumentedTestRequestMatcherRule`. You should use the generic type for your variable and instantiate it with the required type. Example:
 
 ``` java
 // Unit Test
@@ -125,6 +137,13 @@ public RequestMatcherRule server = new InstrumentedTestRequestMatcherRule();
 
 The difference is that when we run an InstrumentedTest, we must pass the instrumentation context (and *NOT* the target context).
 
+## Configuring the `RequestMatcherRule`
+
+It is possible to pass some parameters to the server rule's constructor:
+
+- `MockWebServer` server: an instance of the MockWebServer to use instead a default one.  
+- `String` fixturesRootFolder: the name of the folder in the corresponding context. Defaults to 'fixtures'.
+
 ## RequestAssertionException
 
 When an assertion fails, it throws a `RequestAssertionException`. Of course, this happens in the server thread and so, if we throw an exception from there the client will hang and most likely receive a timeout. This would make tests last too long an dconsequently the test suite. To avoid this, the assertion is buffered and the response is delivered as if it were disconnected. The response is like the snippet below:
@@ -133,46 +152,31 @@ When an assertion fails, it throws a `RequestAssertionException`. Of course, thi
 new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END);
 ```
 
-## Request Assertions
+## Request Matching
 
-### .assertPathIs(String path)
+This rule provides a DSL for matching against requests. You can and should provide matchers against each part of a request. See the base `RequestMatchersGroup` for all possible matching.  
 
-Ensures path is the one expected.
+## Examples
 
-### .assertMethodIs(String method)
-
-Ensures the request method is the one expected. You can use the helper `RequestMatcher.GET`, `RequestMatcher.POST`, `RequestMatcher.PUT` and `RequestMatcher.DELETE`.
-
-### .assertHasQuery(String key, String value)
-
-Ensures the request contains a query string with expected key and value.
-
-### .assertHasHeader(String key, String value)
-
-Ensures the request contains a header with expected key and value.
-
-### .assertBody(BodyAssertion bodyAssertion)
-
-Gives access to the body through a SAM (single abstract method) interface. You can make any assertion inside the `doAssert(String body)` method.
-
-### .assertNoBody()
-
-Ensures request does not have a body.
-
-### .assertRequest(RequestAssertion requestAssertion)
-
-Gives access to the whole request in a SAM interface. You can make any assertion in there.
+``` java
+server.addFixture(200, "body.json")
+            .ifRequestMatches()
+            .pathIs("/post") // path must be "/post"
+            .headersMatches(hasEntry(any(String.class), is("value"))) // some header must contain value "value"
+            .methodIs(HttpMethod.PUT) // method must be PUT
+            .bodyMatches(containsString("\"property\": \"value\"")); // body must contain the string passed
+```
 
 ## Custom `RequestMatcher`
 
-The library is flexible enough for customizing the `RequestMatcher` implementation you want to use. To do that, use the method `RequestMatcher enqueue(MockResponse response, RequestMatcher matcher)`.
+The library is flexible enough for customizing the `RequestMatcherGroup` implementation you want to use. To do that, use the method `addResponse(MockResponse response, T matcher)`, `addFixture(String path, T matcher)` or `addFixture(int statusCode, String fixturePath, T matcher)` where `matcher` is an instance of any class that extends `RequestMatchersGroup`.
 
-All iss needed is to pass a class that extends `RequestMatcher`. With that you can provide your own assertions, for example, you can create assertions according to some custom protocol. This is more useful for those not following strict RESTful architectures.
+With that you can provide your own assertions, for example, you can create assertions according to some custom protocol. This is more useful for those not following strict RESTful architectures.
 
 Example:
 
 ``` java
-CustomMatcher matcher = server.enqueue(new MockResponse().setBody("Some body"), new CustomMatcher());
+CustomMatcher matcher = server.addResponse(new MockResponse().setBody("Some body"), new CustomMatcher()).ifRequestMatches();
 ```
 
 ## Other examples
