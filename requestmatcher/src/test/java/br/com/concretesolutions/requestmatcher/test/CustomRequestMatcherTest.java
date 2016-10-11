@@ -7,16 +7,20 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-import br.com.concretesolutions.requestmatcher.JVMTestRequestMatcherRule;
-import br.com.concretesolutions.requestmatcher.RequestAssertionException;
-import br.com.concretesolutions.requestmatcher.RequestMatcher;
+import br.com.concretesolutions.requestmatcher.BuildConfig;
+import br.com.concretesolutions.requestmatcher.LocalTestRequestMatcherRule;
+import br.com.concretesolutions.requestmatcher.MatcherDispatcher;
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
+import br.com.concretesolutions.requestmatcher.RequestMatchersGroup;
+import br.com.concretesolutions.requestmatcher.exception.NoMatchersForRequestException;
+import br.com.concretesolutions.requestmatcher.exception.RequestAssertionException;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.mockwebserver.MockResponse;
@@ -24,12 +28,12 @@ import okhttp3.mockwebserver.RecordedRequest;
 
 import static org.hamcrest.Matchers.is;
 
-@RunWith(RobolectricGradleTestRunner.class)
-@Config(constants = br.com.concretesolutions.requestmatcher.BuildConfig.class, sdk = 23)
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, sdk = 23)
 public class CustomRequestMatcherTest {
 
-    public final ExpectedException exceptionRule = ExpectedException.none();
-    public final RequestMatcherRule server = new JVMTestRequestMatcherRule();
+    private final ExpectedException exceptionRule = ExpectedException.none();
+    private final RequestMatcherRule server = new LocalTestRequestMatcherRule();
 
     @Rule
     public TestRule chain = RuleChain
@@ -37,13 +41,14 @@ public class CustomRequestMatcherTest {
             .around(server);
 
     private OkHttpClient client;
-    private final AssertionError expectedAssertionError = new AssertionError("Fail");
+    private final NoMatchersForRequestException expectedAssertionError =
+            new NoMatchersForRequestException(Collections.<MatcherDispatcher.ResponseWithMatcher>emptySet());
 
-    private class CustomMatcher extends RequestMatcher {
+    class CustomMatcher extends RequestMatchersGroup {
 
-        private boolean shouldThrow;
+        boolean shouldThrow;
 
-        public CustomMatcher assertThatItThrows() {
+        CustomMatcher assertThatItThrows() {
             this.shouldThrow = true;
             return this;
         }
@@ -72,9 +77,10 @@ public class CustomRequestMatcherTest {
         exceptionRule.expectCause(is(expectedAssertionError));
 
         // Enqueue 2 times
-        server.enqueue(new MockResponse().setBody("plain body"), new CustomMatcher());
-        server.enqueue(new MockResponse().setBody("plain body"), new CustomMatcher())
-                .assertThatItThrows();
+        server.addResponse(new MockResponse().setBody("plain body"), new CustomMatcher());
+        server.addResponse(new MockResponse().setBody("plain body"), new CustomMatcher())
+                .ifRequestMatches()
+                .assertThatItThrows(); // ensure it throws
 
         final Request request = new Request.Builder()
                 .url(server.url("/get").toString())
