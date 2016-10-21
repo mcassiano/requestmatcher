@@ -20,6 +20,7 @@ bintray {
     pkg {
         repo = 'maven'
         name = 'requestmatcher'
+        userOrg = 'concretesolutions'
         desc = DESCRIPTION
         websiteUrl = PROJECT_URL
         vcsUrl = SCM_URL

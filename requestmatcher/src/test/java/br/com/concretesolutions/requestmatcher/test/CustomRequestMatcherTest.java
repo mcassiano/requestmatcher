@@ -57,8 +57,9 @@ public class CustomRequestMatcherTest {
         public void doAssert(RecordedRequest request) {
             super.doAssert(request);
 
-            if (shouldThrow)
+            if (shouldThrow) {
                 throw expectedAssertionError;
+            }
         }
     }
 

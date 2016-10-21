@@ -36,7 +36,7 @@ public final class MatcherDispatcher extends Dispatcher {
 
             final RequestMatchersGroup matcher = response.getMatcher();
 
-            if (matcher != null)
+            if (matcher != null) {
                 try {
                     matcher.doAssert(request);
                     matcher.assertOrder(currentOrder);
@@ -53,6 +53,7 @@ public final class MatcherDispatcher extends Dispatcher {
                     logger.log(Level.SEVERE, "Error while doing assert", e);
                     return response.getResponse(); // return response but keep exception
                 }
+            }
         }
 
         this.assertionError = new RequestAssertionException("Unexpected exception during assertion.",
