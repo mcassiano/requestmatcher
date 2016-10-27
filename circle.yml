@@ -21,5 +21,5 @@ dependencies:
 
 test:
     override:
-        - ./gradlew testDebug --console=plain --stacktrace --info
+        - ./gradlew check --console=plain --stacktrace --info
         - cp -r requestmatcher/build/test-results/**/* $CIRCLE_TEST_REPORTS

@@ -17,8 +17,9 @@ public final class RequestUtils {
         final String queryString = path.substring(path.indexOf('?') + 1);
         final String[] queryParts = queryString.split("&");
 
-        if (queryParts.length == 0)
+        if (queryParts.length == 0) {
             return queries;
+        }
 
         for (String part : queryParts) {
             final String[] split = part.split("=");
@@ -41,8 +42,9 @@ public final class RequestUtils {
 
             for (int i = 0; i < values.size(); i++) {
 
-                if (i > 0)
+                if (i > 0) {
                     headerValue.append(';');
+                }
 
                 headerValue.append(values.get(i));
             }
@@ -58,8 +60,9 @@ public final class RequestUtils {
 
         final String path = request.getPath();
 
-        if (!path.contains("?"))
+        if (!path.contains("?")) {
             return path;
+        }
 
         return path.substring(0, path.indexOf('?'));
     }

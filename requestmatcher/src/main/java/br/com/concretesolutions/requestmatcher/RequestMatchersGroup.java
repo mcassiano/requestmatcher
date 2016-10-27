@@ -33,37 +33,44 @@ public class RequestMatchersGroup {
      */
     public void doAssert(RecordedRequest request) {
 
-        if (methodMatcher != null)
+        if (methodMatcher != null) {
             assertThat(HttpMethod.forRequest(request), methodMatcher);
+        }
 
-        if (pathMatcher != null)
+        if (pathMatcher != null) {
             assertThat(RequestUtils.getPathOnly(request), pathMatcher);
+        }
 
         final String path = request.getPath();
 
         if (queryMatcher != null) {
 
-            if (!path.contains("?"))
+            if (!path.contains("?")) {
                 assertThat(new HashMap<String, String>(0), queryMatcher);
-            else
+            } else {
                 assertThat(RequestUtils.buildQueryMap(path), queryMatcher);
+            }
         }
 
-        if (headersMatcher != null)
+        if (headersMatcher != null) {
             assertThat(RequestUtils.buildHeadersMap(request.getHeaders()), headersMatcher);
+        }
 
         final String body = request.getBody().readUtf8();
 
-        if (bodyMatcher != null)
+        if (bodyMatcher != null) {
             assertThat(body, bodyMatcher);
+        }
 
-        if (jsonMatcher != null)
+        if (jsonMatcher != null) {
             assertThat(body, jsonMatcher);
+        }
     }
 
     public void assertOrder(int currentOrder) {
-        if (orderMatcher != null)
+        if (orderMatcher != null) {
             assertThat(currentOrder, orderMatcher);
+        }
     }
 
     public RequestMatchersGroup hasEmptyBody() {
@@ -151,21 +158,22 @@ public class RequestMatchersGroup {
     }
 
     private void checkIsNull(Object target, String message) {
-        if (target != null)
+        if (target != null) {
             throw new IllegalStateException(message);
+        }
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("RequestMatchersGroup{");
 
-        if (bodyMatcher != null) sb.append("\n\tbodyMatcher = ").append(bodyMatcher);
-        if (jsonMatcher != null) sb.append("\n\tjsonMatcher = ").append(jsonMatcher);
-        if (pathMatcher != null) sb.append(",\n\tpathMatcher = ").append(pathMatcher);
-        if (methodMatcher != null) sb.append(",\n\tmethodMatcher = ").append(methodMatcher);
-        if (orderMatcher != null) sb.append(",\n\torderMatcher = ").append(orderMatcher);
-        if (queryMatcher != null) sb.append(",\n\tqueryMatcher = ").append(queryMatcher);
-        if (headersMatcher != null) sb.append(",\n\theadersMatcher = ").append(headersMatcher);
+        if (bodyMatcher != null) { sb.append("\n\tbodyMatcher = ").append(bodyMatcher); }
+        if (jsonMatcher != null) { sb.append("\n\tjsonMatcher = ").append(jsonMatcher); }
+        if (pathMatcher != null) { sb.append(",\n\tpathMatcher = ").append(pathMatcher); }
+        if (methodMatcher != null) { sb.append(",\n\tmethodMatcher = ").append(methodMatcher); }
+        if (orderMatcher != null) { sb.append(",\n\torderMatcher = ").append(orderMatcher); }
+        if (queryMatcher != null) { sb.append(",\n\tqueryMatcher = ").append(queryMatcher); }
+        if (headersMatcher != null) { sb.append(",\n\theadersMatcher = ").append(headersMatcher); }
 
         sb.append("\n}");
         return sb.toString();

@@ -128,13 +128,13 @@ Because of these differences, there are two implementations of `RequestMatcherRu
 ``` java
 // Unit Test
 @Rule
-public RequestMatcherRule server = new JVMTestRequestMatcherRule();
+public final RequestMatcherRule server = new LocalTestRequestMatcherRule();
 
 // or
 
 // Instrumented Test
 @Rule
-public RequestMatcherRule server = new InstrumentedTestRequestMatcherRule();
+public final RequestMatcherRule server = new InstrumentedTestRequestMatcherRule();
 ```
 
 The difference is that when we run an InstrumentedTest, we must pass the instrumentation context (and *NOT* the target context).

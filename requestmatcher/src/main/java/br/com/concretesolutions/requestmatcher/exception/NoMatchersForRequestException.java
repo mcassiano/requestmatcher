@@ -19,7 +19,7 @@ public class NoMatchersForRequestException extends RuntimeException {
         int order = 0;
 
         for (MatcherDispatcher.ResponseWithMatcher matcherResponse : matchers) {
-            sb.append("\n")
+            sb.append('\n')
                     .append(++order)
                     .append(": ")
                     .append(matcherResponse.getMatcher());

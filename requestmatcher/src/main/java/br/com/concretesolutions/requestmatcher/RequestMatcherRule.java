@@ -6,6 +6,8 @@ import org.junit.runners.model.Statement;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,6 +47,9 @@ public abstract class RequestMatcherRule implements TestRule {
     private final MockWebServer server;
     private final String fixturesRootFolder;
 
+    private final Map<String, String> defaultHeaders = new HashMap<>();
+    private boolean guessMimeType = true;
+
     RequestMatcherRule() {
         this(new MockWebServer());
     }
@@ -71,6 +76,30 @@ public abstract class RequestMatcherRule implements TestRule {
     }
 
     /**
+     * Adds this header to all fixtures delivered by this rule.
+     *
+     * @param key   Header key
+     * @param value Header value
+     * @return This for chaining
+     */
+    public RequestMatcherRule withDefaultHeader(String key, String value) {
+        defaultHeaders.put(key, value);
+        return this;
+    }
+
+    /**
+     * Sets whether it should be tried to guess the proper mime type for the fixture from its file
+     * extension.
+     *
+     * @param guess True to enable guessing, false otherwise. Default true.
+     * @return This for chaining
+     */
+    public RequestMatcherRule withGuessingMimeTypeFromFixtureExtension(boolean guess) {
+        guessMimeType = guess;
+        return this;
+    }
+
+    /**
      * Returns the complete url of the relative path.
      *
      * @param path A relative path. For example: "/" would return http://localhost:<portnumber></portnumber>/
@@ -80,6 +109,9 @@ public abstract class RequestMatcherRule implements TestRule {
         return server.url(path);
     }
 
+    /**
+     * Returns the wrapped {@link MockWebServer} instance
+     */
     public MockWebServer getMockWebServer() {
         return server;
     }
@@ -139,9 +171,26 @@ public abstract class RequestMatcherRule implements TestRule {
      * @return A dsl instance {@link IfRequestMatches} for chaining
      */
     public IfRequestMatches<RequestMatchersGroup> addFixture(int statusCode, String fixturePath) {
-        return addResponse(new MockResponse()
+
+        final MockResponse mockResponse = new MockResponse()
                 .setResponseCode(statusCode)
-                .setBody(readFixture(fixturePath)));
+                .setBody(readFixture(fixturePath));
+
+        if (guessMimeType) {
+            final String mimeType = IOReader.mimeTypeFromExtension(fixturePath);
+
+            if (mimeType != null) {
+                mockResponse.addHeader("Content-Type", mimeType);
+            }
+        }
+
+        if (!defaultHeaders.isEmpty()) {
+            for (String headerKey : defaultHeaders.keySet()) {
+                mockResponse.addHeader(headerKey, defaultHeaders.get(headerKey));
+            }
+        }
+
+        return addResponse(mockResponse);
     }
 
     /**
@@ -204,8 +253,7 @@ public abstract class RequestMatcherRule implements TestRule {
             // suppressed as it was added only in API 19.
             if (exception != null) {
                 Logger.getLogger(RequestMatcherRule.class.getName())
-                        .log(Level.SEVERE, "Test threw exception.");
-                exception.printStackTrace();
+                        .log(Level.SEVERE, "Test threw exception.", exception);
             }
 
             throw dispatcher.getAssertionException();
@@ -213,8 +261,9 @@ public abstract class RequestMatcherRule implements TestRule {
 
         if (!success) {
 
-            if (exception != null)
+            if (exception != null) {
                 throw exception;
+            }
 
             return;
         }

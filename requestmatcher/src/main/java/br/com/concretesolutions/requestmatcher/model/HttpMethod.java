@@ -18,8 +18,9 @@ public enum HttpMethod {
         final String method = request.getMethod();
 
         for (HttpMethod httpMethod : values()) {
-            if (httpMethod.name().equals(method))
+            if (httpMethod.name().equals(method)) {
                 return httpMethod;
+            }
         }
 
         throw new IllegalArgumentException("Can't recognize method");

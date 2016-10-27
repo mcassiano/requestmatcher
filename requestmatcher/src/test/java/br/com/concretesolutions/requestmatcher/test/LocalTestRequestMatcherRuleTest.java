@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(constants = BuildConfig.class, sdk = 23)
@@ -516,7 +517,7 @@ public class LocalTestRequestMatcherRuleTest {
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
                 .hasNoQueries()
-        .hasEmptyBody();
+                .hasEmptyBody();
 
         this.request = new Request.Builder()
                 .url(server.url("/get?key=value").toString())
@@ -524,5 +525,103 @@ public class LocalTestRequestMatcherRuleTest {
                 .build();
 
         client.newCall(request).execute();
+    }
+
+    @Test
+    public void ensureFixtureHasContentTypeAttachedAutomaticallyForJson() throws IOException {
+
+        server.addFixture(200, "body.json");
+
+        this.request = new Request.Builder()
+                .url(server.url("/get").toString())
+                .get()
+                .build();
+
+        final Response resp = client.newCall(request).execute();
+
+        assertThat(resp.isSuccessful(), is(true));
+        assertThat(resp.headers().get("Content-Type"), is("application/json"));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(),
+                containsString("property\": \"value\""));
+    }
+
+    @Test
+    public void ensureFixtureHasContentTypeAttachedAutomaticallyForXml() throws IOException {
+
+        server.addFixture(200, "body.xml");
+
+        this.request = new Request.Builder()
+                .url(server.url("/get").toString())
+                .get()
+                .build();
+
+        final Response resp = client.newCall(request).execute();
+
+        assertThat(resp.isSuccessful(), is(true));
+        assertThat(resp.headers().get("Content-Type"), is("text/xml"));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(), containsString("<xml />"));
+    }
+
+    @Test
+    public void canAddADefaultHeader() throws IOException {
+
+        server.withDefaultHeader("anykey", "anyvalue");
+
+        server.addFixture(200, "body.xml")
+                .ifRequestMatches()
+                .orderIs(1);
+
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(2);
+
+        this.request = new Request.Builder()
+                .url(server.url("/").toString())
+                .get()
+                .build();
+
+        Response resp = client.newCall(request).execute();
+
+        assertThat(resp.isSuccessful(), is(true));
+        assertThat(resp.headers().get("Content-Type"), is("text/xml"));
+        assertThat(resp.headers().get("anykey"), is("anyvalue"));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(), containsString("<xml />"));
+
+        resp = client.newCall(request).execute();
+
+        assertThat(resp.isSuccessful(), is(true));
+        assertThat(resp.headers().get("Content-Type"), is("application/json"));
+        assertThat(resp.headers().get("anykey"), is("anyvalue"));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(),
+                containsString("property\": \"value\""));
+    }
+
+    @Test
+    public void canEnableOrDisableGuessingOfMimeType() throws IOException {
+
+        server.withGuessingMimeTypeFromFixtureExtension(false);
+
+        server.addFixture(200, "body.xml");
+
+        this.request = new Request.Builder()
+                .url(server.url("/get").toString())
+                .get()
+                .build();
+
+        Response resp = client.newCall(request).execute();
+
+        assertThat(resp.isSuccessful(), is(true));
+        assertThat(resp.headers().get("Content-Type"), is(nullValue()));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(), containsString("<xml />"));
+
+        server.withGuessingMimeTypeFromFixtureExtension(true);
+
+        server.addFixture(200, "body.xml");
+
+        resp = client.newCall(request).execute();
+
+        assertThat(resp.isSuccessful(), is(true));
+        assertThat(resp.headers().get("Content-Type"), is("text/xml"));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(), containsString("<xml />"));
     }
 }
