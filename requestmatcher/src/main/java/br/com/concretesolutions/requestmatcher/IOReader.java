@@ -4,6 +4,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,10 +41,39 @@ final class IOReader {
         return builder.append("\n").toString();
     }
 
+    static byte[] readBinary(InputStream is) {
+
+        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        int nRead;
+        byte[] data = new byte[16384];
+
+        try {
+            while ((nRead = is.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+
+            buffer.flush();
+
+            return buffer.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read resource fully", e);
+        } finally {
+
+            try {
+                is.close();
+            } catch (IOException e) {
+                Log.e(IOReader.class.getSimpleName(), "Error while trying to close stream", e);
+                // do nothing here
+            }
+        }
+    }
+
     /*
     This is not using MimeTypeMap or URLConnection to guess the mime-type by the path extension
     because Robolectric does not implement it. That would never find the mime-type for local tests.
      */
+
     static String mimeTypeFromExtension(String path) {
 
         if (TextUtils.isEmpty(path)) {
@@ -74,6 +104,14 @@ final class IOReader {
                 return "text/html";
             case "css":
                 return "text/css";
+            case "png":
+                return "image/png";
+            case "jpg":
+                return "image/jpeg";
+            case "gif":
+                return "image/gif";
+            case "pdf":
+                return "application/pdf";
             default:
                 return null;
         }

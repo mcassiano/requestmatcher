@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 @RunWith(AndroidJUnit4.class)
 public class InstrumentedTestRequestMatcherRuleTest {
@@ -296,5 +297,30 @@ public class InstrumentedTestRequestMatcherRuleTest {
         exceptionRule.expectMessage(
                 containsString("Failed assertion. There are fixtures that were not used."));
         server.addFixture(200, "body.json");
+    }
+
+    @Test
+    public void canReadBinaryFixture() {
+        final byte[] bytes = server.readBinaryFixture("screenshot.png");
+        assertThat(bytes, is(notNullValue()));
+        assertThat(bytes.length, is(63_537));
+    }
+
+    @Test
+    public void canDetectMimeTypeFromBinaryFixture() throws IOException {
+
+        server.addFixture(200, "screenshot.png")
+                .ifRequestMatches()
+                .pathIs("/binary");
+
+        this.request = new Request.Builder()
+                .url(server.url("/binary").toString())
+                .get()
+                .build();
+
+        final Response response = client.newCall(request).execute();
+
+        assertThat(response.code(), is(200));
+        assertThat(response.header("Content-type"), is("image/png"));
     }
 }
