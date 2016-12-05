@@ -132,6 +132,21 @@ public abstract class RequestMatcherRule implements TestRule {
     }
 
     /**
+     * Used to read fixtures. This combines the fixturesRootFolder with the passed fixturePath to
+     * find the file to read.
+     *
+     * @param fixturePath Relative path
+     * @return The contents of the fixture
+     */
+    public byte[] readBinaryFixture(final String fixturePath) {
+        try {
+            return IOReader.readBinary(open(fixturesRootFolder + "/" + fixturePath));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read asset with path " + fixturePath, e);
+        }
+    }
+
+    /**
      * Adds a fixture to be used during the test case.
      *
      * @param response The {@link MockResponse} to return.

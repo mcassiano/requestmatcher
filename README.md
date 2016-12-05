@@ -25,7 +25,7 @@ The library is available in JCenter repositories. To use it, just declare it in 
 ``` groovy
 dependencies {
 
-    // unit tests
+    // local tests
     testCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
 
     // instrumented tests
@@ -45,7 +45,7 @@ So, ensure those libraries are also in your dependencies. For example:
 ``` groovy
 dependencies {
 
-    // unit tests
+    // local tests
     testCompile "br.com.concretesolutions:requestmatcher:$latestVersion"
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
@@ -63,10 +63,10 @@ dependencies {
 
 ## Usage
 
-The core API of this library is centered around the class `RequestMatcherRule`. This is a wrapping rule around Square's `MockWebServer`. A basic unit test can be setup like:
+The core API of this library is centered around the class `RequestMatcherRule`. This is a wrapping rule around Square's `MockWebServer`. A basic local test can be setup like:
 
 ``` java
-public class UnitTest {
+public class LocalTest {
 
     @Rule
     public final RequestMatcherRule serverRule = new LocalTestRequestMatcherRule();
@@ -118,15 +118,15 @@ To add a fixture all you have to do is call one of the `addFixture` methods in t
 serverRule.addFixture(200, "body.json");
 ```
 
-This will add a response with status code 200 and the contents of the file `body.json` as the body. This file, by default, must be located in a folder with name `fixtures`. This folder works different for Unit Tests and Instrumented Tests.
+This will add a response with status code 200 and the contents of the file `body.json` as the body. This file, by default, must be located in a folder with name `fixtures`. This folder works different for Local Tests and Instrumented Tests.
 
-- Unit tests: these are run locally in the JVM (usually with Robolectric) and follow different conventions. Your source folder `test` may contain a folder `java` and a fodler `resources`. When you compile your code it takes everything in the `resources` folder and puts in the root of your `.class` files. So, your fixtures folder must go inside `resources` folder.
-- Instrumented tests: there are run in a device or emulator (usually with Espresso or Robotium). It follows the android fodler layout and so you may have an assets folder inside your `androidTest` folder. Your `fixtures` folder must go there.
+- Local tests: these are run locally in the JVM (usually with Robolectric) and follow different conventions. Your source folder `test` may contain a folder `java` and a folder `resources`. When you compile your code it takes everything in the `resources` folder and puts in the root of your `.class` files. So, your fixtures folder must go inside `resources` folder.
+- Instrumented tests: there are run in a device or emulator (usually with Espresso or Robotium). It follows the android folder layout and so you may have an assets folder inside your `androidTest` folder. Your `fixtures` folder must go there.
 
 Because of these differences, there are two implementations of `RequestMatcherRule`: `LocalTestRequestMatcherRule` and `InstrumentedTestRequestMatcherRule`. You should use the generic type for your variable and instantiate it with the required type. Example:
 
 ``` java
-// Unit Test
+// Local Test
 @Rule
 public final RequestMatcherRule server = new LocalTestRequestMatcherRule();
 
@@ -139,16 +139,18 @@ public final RequestMatcherRule server = new InstrumentedTestRequestMatcherRule(
 
 The difference is that when we run an InstrumentedTest, we must pass the instrumentation context (and *NOT* the target context).
 
+More on the difference between each kind of test [here](https://medium.com/concrete-solutions/android-local-or-instrumented-tests-9da545af7777#.mmowgemc4)
+
 ## Configuring the `RequestMatcherRule`
 
 It is possible to pass some parameters to the server rule's constructor:
 
-- `MockWebServer` server: an instance of the MockWebServer to use instead a default one.  
+- `MockWebServer` server: an instance of the MockWebServer to use instead of a default new one.
 - `String` fixturesRootFolder: the name of the folder in the corresponding context. Defaults to 'fixtures'.
 
 ## RequestAssertionException
 
-When an assertion fails, it throws a `RequestAssertionException`. Of course, this happens in the server thread and so, if we throw an exception from there the client will hang and most likely receive a timeout. This would make tests last too long an dconsequently the test suite. To avoid this, the assertion is buffered and the response is delivered as if it were disconnected. The response is like the snippet below:
+When an assertion fails, it throws a `RequestAssertionException`. Of course, this happens in the server thread and so, if we throw an exception from there the client will hang and most likely receive a timeout. This would make tests last too long and consequently the test suite. To avoid this, the assertion is buffered and the response is delivered as if it were disconnected. The response is like the snippet below:
 
 ``` java
 new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END);
@@ -156,13 +158,13 @@ new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END);
 
 ## Request Matching
 
-This rule provides a DSL for matching against requests. You can and should provide matchers against each part of a request. See the base `RequestMatchersGroup` for all possible matching.  
+The `RequestMatcherRule` provides a DSL for matching against requests. You can and should provide matchers against each part of a request. See the base `RequestMatchersGroup` for all possible matching.
 
 ## Examples
 
 ``` java
 server.addFixture(200, "body.json")
-            .ifRequestMatches()
+            .ifRequestMatches() // this is the entry point to configure matching
             .pathIs("/post") // path must be "/post"
             .headersMatches(hasEntry(any(String.class), is("value"))) // some header must contain value "value"
             .methodIs(HttpMethod.PUT) // method must be PUT
