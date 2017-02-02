@@ -341,8 +341,8 @@ public class InstrumentedTestRequestMatcherRuleTest {
                 .build();
 
         // MatcherDispatcher uses a Set for this responses. So it is hard to ensure that
-        // matcher 0 is ordered first... but exactly this must be tested - the body of
-        // request0 must be read two times!
+        // matcher 1 is ordered first... but exactly this must be tested - the body of
+        // request1 must be read two times!
         // the set implementation seems to keep the insertion order...
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
