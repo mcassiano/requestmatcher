@@ -32,6 +32,7 @@ public final class MatcherDispatcher extends Dispatcher {
 
         final int currentOrder = order.incrementAndGet();
 
+        final StringBuffer notMatchedAssertions = new StringBuffer();
         for (ResponseWithMatcher response : responseSet) {
 
             final RequestMatchersGroup matcher = response.getMatcher();
@@ -44,7 +45,7 @@ public final class MatcherDispatcher extends Dispatcher {
                     return response.getResponse(); // return proper response
                 } catch (AssertionError ignored) {
                     // continue
-
+                    notMatchedAssertions.append(ignored.toString()).append('\n');
                 } catch (OrderException e) {
                     this.assertionError = new RequestAssertionException("Wrong orderIs of requests.", e);
                     return new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END); // disconnect
@@ -56,8 +57,10 @@ public final class MatcherDispatcher extends Dispatcher {
             }
         }
 
-        this.assertionError = new RequestAssertionException("Unexpected exception during assertion.",
-                new NoMatchersForRequestException(responseSet));
+        this.assertionError =
+                new RequestAssertionException(
+                        "Unexpected exception during assertion.",
+                        new NoMatchersForRequestException(request, notMatchedAssertions, responseSet));
 
         return new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END);
     }
