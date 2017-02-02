@@ -25,6 +25,7 @@ import okhttp3.Response;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -322,5 +323,41 @@ public class InstrumentedTestRequestMatcherRuleTest {
 
         assertThat(response.code(), is(200));
         assertThat(response.header("Content-type"), is("image/png"));
+    }
+
+    @Test
+    public void canAssertRequestBodyMultipleTimes() throws Exception {
+        // prepare
+        String jsonRequestBody0 = "{\"key\" : 0}";
+        String jsonRequestBody1 = "{\"key\" : 1}";
+
+        Request request0 = new Request.Builder()
+                .url(server.url("/body/0").toString())
+                .post(RequestBody.create(MediaType.parse("application/json"), jsonRequestBody0))
+                .build();
+        Request request1 = new Request.Builder()
+                .url(server.url("/body/1").toString())
+                .post(RequestBody.create(MediaType.parse("application/json"), jsonRequestBody1))
+                .build();
+
+        // MatcherDispatcher uses a Set for this responses. So it is hard to ensure that
+        // matcher 0 is ordered first... but exactly this must be tested - the body of
+        // request0 must be read two times!
+        // the set implementation seems to keep the insertion order...
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(1)
+                .bodyMatches(equalTo(jsonRequestBody0));
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(2)
+                .bodyMatches(equalTo(jsonRequestBody1));
+
+        // execute
+        client.newCall(request0).execute();
+        client.newCall(request1).execute();
+
+        // verify
+        // no exception
     }
 }
