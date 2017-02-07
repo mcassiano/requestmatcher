@@ -56,7 +56,8 @@ public class RequestMatchersGroup {
             assertThat(RequestUtils.buildHeadersMap(request.getHeaders()), headersMatcher);
         }
 
-        final String body = request.getBody().readUtf8();
+        // clone the body! perhaps we need the request body for a future assertion.
+        final String body = request.getBody().buffer().clone().readUtf8();
 
         if (bodyMatcher != null) {
             assertThat(body, bodyMatcher);
