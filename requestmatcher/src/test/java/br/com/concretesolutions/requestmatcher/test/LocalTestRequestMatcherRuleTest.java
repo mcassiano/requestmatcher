@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import br.com.concretesolutions.requestmatcher.BuildConfig;
 import br.com.concretesolutions.requestmatcher.LocalTestRequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
+import br.com.concretesolutions.requestmatcher.RequestMatchersGroup;
 import br.com.concretesolutions.requestmatcher.exception.RequestAssertionException;
 import br.com.concretesolutions.requestmatcher.model.HttpMethod;
 import okhttp3.MediaType;
@@ -99,7 +100,11 @@ public class LocalTestRequestMatcherRuleTest {
     public void failsIfExpectedNoBodyButOneWasProvided() throws IOException {
 
         exceptionRule.expect(RequestAssertionException.class);
-        exceptionRule.expectMessage(containsString("bodyMatcher = (null or an empty string)"));
+        exceptionRule.expectMessage(
+                allOf(
+                        containsString("body: (null or an empty string)"),
+                        containsString(RequestMatchersGroup.BODY_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -117,7 +122,11 @@ public class LocalTestRequestMatcherRuleTest {
     public void failsIfExpectedPathIsDifferent() throws IOException {
 
         exceptionRule.expect(RequestAssertionException.class);
-        exceptionRule.expectMessage(containsString("pathMatcher = is \"/post\""));
+        exceptionRule.expectMessage(
+                allOf(
+                        containsString("path: is \"/post\""),
+                        containsString(RequestMatchersGroup.PATH_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -136,7 +145,10 @@ public class LocalTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("queryMatcher = map containing [\"key\"->\"value\"]"));
+                allOf(
+                        containsString("query parameters: map containing [\"key\"->\"value\"]"),
+                        containsString(RequestMatchersGroup.QUERIES_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -192,7 +204,10 @@ public class LocalTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("headersMatcher = map containing [\"key\"->\"value\"]"));
+                allOf(
+                        containsString("headers: map containing [\"key\"->\"value\"]"),
+                        containsString(RequestMatchersGroup.HEADERS_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -230,7 +245,10 @@ public class LocalTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("bodyMatcher = a string containing \"\\\"property\\\": \\\"value\\\"\""));
+                allOf(
+                        containsString("body: a string containing \"\\\"property\\\": \\\"value\\\"\""),
+                        containsString(RequestMatchersGroup.BODY_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -273,11 +291,12 @@ public class LocalTestRequestMatcherRuleTest {
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
-                        containsString("bodyMatcher = a string containing \"\\\"property\\\": \\\"value\\\"\""),
-                        containsString("pathMatcher = is \"/post\""),
-                        containsString("methodMatcher = is <POST>"),
-                        containsString("queryMatcher = map containing [\"key\"->\"value\"]"),
-                        containsString("headersMatcher = map containing [\"key\"->\"value\"]")
+                        containsString("body: a string containing \"\\\"property\\\": \\\"value\\\"\""),
+                        containsString("path: is \"/post\""),
+                        containsString("method: is <POST>"),
+                        containsString("query parameters: map containing [\"key\"->\"value\"]"),
+                        containsString("headers: map containing [\"key\"->\"value\"]"),
+                        containsString(RequestMatchersGroup.BODY_MSG)
                 )
         );
 
@@ -302,7 +321,11 @@ public class LocalTestRequestMatcherRuleTest {
     public void failsIfNoBodyWasExpectedButReceivedOne() throws IOException {
 
         exceptionRule.expect(RequestAssertionException.class);
-        exceptionRule.expectMessage(containsString("bodyMatcher = (null or an empty string)"));
+        exceptionRule.expectMessage(
+                allOf(
+                        containsString("body: (null or an empty string)"),
+                        containsString(RequestMatchersGroup.BODY_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -321,7 +344,10 @@ public class LocalTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("queryMatcher = map containing [\"key\"->\"value\"]"));
+                allOf(
+                        containsString("query parameters: map containing [\"key\"->\"value\"]"),
+                        containsString(RequestMatchersGroup.QUERIES_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -381,8 +407,11 @@ public class LocalTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("is json with json path \"$..[*]\" and is json with json " +
-                        "path \"$['unexisting']['path']\" evaluated to is \"value\")"));
+                allOf(
+                        containsString("is json with json path \"$..[*]\" and is json with json " +
+                                "path \"$['unexisting']['path']\" evaluated to is \"value\")"),
+                        containsString(RequestMatchersGroup.JSON_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -408,10 +437,14 @@ public class LocalTestRequestMatcherRuleTest {
     }
 
     @Test
-    public void canEnsureOrder() throws IOException {
+    public void failsIfOrderIsDifferent() throws IOException {
 
         exceptionRule.expect(RequestAssertionException.class);
-        exceptionRule.expectMessage(containsString("orderMatcher = is <3>"));
+        exceptionRule.expectMessage(
+                allOf(
+                        containsString("order: is <3>"),
+                        containsString(RequestMatchersGroup.ORDER_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -512,7 +545,11 @@ public class LocalTestRequestMatcherRuleTest {
     public void failIfExpectedNoQueriesButGotSome() throws IOException {
 
         exceptionRule.expect(RequestAssertionException.class);
-        exceptionRule.expectMessage(containsString("queryMatcher = a map with size <0>"));
+        exceptionRule.expectMessage(
+                allOf(
+                        containsString("query parameters: a map with size <0>"),
+                        containsString(RequestMatchersGroup.QUERIES_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()

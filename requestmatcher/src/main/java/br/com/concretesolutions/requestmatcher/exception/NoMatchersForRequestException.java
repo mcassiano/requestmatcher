@@ -1,49 +1,60 @@
 package br.com.concretesolutions.requestmatcher.exception;
 
-import java.util.Set;
-
-import br.com.concretesolutions.requestmatcher.MatcherDispatcher;
+import br.com.concretesolutions.requestmatcher.RequestMatchersGroup;
+import okhttp3.Headers;
 import okhttp3.mockwebserver.RecordedRequest;
 
 public class NoMatchersForRequestException extends RuntimeException {
 
-    private static final String PRE = "No matchers found for request. Failing test. Current matchers: ";
-    private static final String PRE_WITH_REQ = "\nNo matcher found for request: ";
+    private static final String PRE_WITH_REQ = "No matcher found for request: \n\n";
 
-    public NoMatchersForRequestException(
-            RecordedRequest request,
-            StringBuffer notMatchedAsserts,
-            Set<MatcherDispatcher.ResponseWithMatcher> matchers) {
-        super(buildMessage(request, notMatchedAsserts, matchers));
+    private NoMatchersForRequestException(Builder builder) {
+        super(builder.sb.toString());
     }
 
-    public NoMatchersForRequestException(Set<MatcherDispatcher.ResponseWithMatcher> matchers) {
-        super(buildMessage(matchers));
-    }
+    public static class Builder {
 
-    private static String buildMessage(RecordedRequest request, StringBuffer notMatchedAsserts, Set<MatcherDispatcher.ResponseWithMatcher> matchers) {
-        final StringBuilder sb = new StringBuilder(PRE_WITH_REQ);
-        sb.append(request.toString()).append('\n');
-        sb.append("with body: '").append(request.getBody().toString()).append("'\n");
-        sb.append("Listing all failed assertion messages (we've tried each of your matchers!):").append('\n');
-        sb.append(notMatchedAsserts);
-        sb.append(buildMessage(matchers));
-        return sb.toString();
-    }
+        @SuppressWarnings("PMD.AvoidStringBufferField")
+        private final StringBuilder sb = new StringBuilder(PRE_WITH_REQ);
 
-    private static String buildMessage(Set<MatcherDispatcher.ResponseWithMatcher> matchers) {
-
-        final StringBuilder sb = new StringBuilder(PRE);
-
-        int order = 0;
-
-        for (MatcherDispatcher.ResponseWithMatcher matcherResponse : matchers) {
-            sb.append('\n')
-                    .append(++order)
-                    .append(": ")
-                    .append(matcherResponse.getMatcher());
+        public Builder(final RecordedRequest request) {
+            buildRequestMessage(sb, request)
+                    .append("\n\nTried the following matchers:\n");
         }
 
-        return sb.toString();
+        public Builder appendAssertionError(final int order,
+                                            final AssertionError error,
+                                            final RequestMatchersGroup matcher) {
+
+            sb.append('\n').append(order).append(". ");
+
+            final String message = error
+                    .toString()
+                    .substring(error.getClass().getCanonicalName().length() + 1);
+
+            matcher.buildExpectedMatchers(sb)
+                    .append("\n Failed because")
+                    .append(message.replaceAll("\n", "\n "))
+                    .append('\n');
+            return this;
+        }
+
+        public NoMatchersForRequestException build() {
+            return new NoMatchersForRequestException(this);
+        }
+    }
+
+    private static StringBuilder buildRequestMessage(final StringBuilder sb,
+                                                     final RecordedRequest request) {
+
+        sb.append("> ").append(request.getRequestLine());
+
+        final Headers headers = request.getHeaders();
+        for (int i = 0, count = headers.size(); i < count; i++) {
+            sb.append("\n> ").append(headers.name(i)).append(": ").append(headers.value(i));
+        }
+
+        final String body = request.getBody().clone().readUtf8();
+        return body.isEmpty() ? sb : sb.append("\n\n").append(body);
     }
 }
