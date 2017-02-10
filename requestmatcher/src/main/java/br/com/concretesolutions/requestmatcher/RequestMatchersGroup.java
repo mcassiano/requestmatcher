@@ -41,7 +41,7 @@ public class RequestMatchersGroup {
     /**
      * Main assert method called in the {@link okhttp3.mockwebserver.MockWebServer} dispatching.
      */
-    public void doAssert(@NonNull final RecordedRequest request, @NonNull final int currentOrder) {
+    public void doAssert(@NonNull final RecordedRequest request, final int currentOrder) {
 
         if (methodMatcher != null) {
             assertThat(METHOD_MSG, HttpMethod.forRequest(request), methodMatcher);

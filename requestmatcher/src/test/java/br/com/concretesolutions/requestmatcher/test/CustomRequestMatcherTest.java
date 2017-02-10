@@ -1,5 +1,7 @@
 package br.com.concretesolutions.requestmatcher.test;
 
+import android.support.annotation.NonNull;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,7 +59,7 @@ public class CustomRequestMatcherTest {
         }
 
         @Override
-        public void doAssert(RecordedRequest request, int currentOrder) {
+        public void doAssert(@NonNull RecordedRequest request, int currentOrder) {
             super.doAssert(request, currentOrder);
 
             if (shouldThrow) {
