@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import br.com.concretesolutions.requestmatcher.BuildConfig;
 import br.com.concretesolutions.requestmatcher.LocalTestRequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
+import br.com.concretesolutions.requestmatcher.RequestMatchersGroup;
 import br.com.concretesolutions.requestmatcher.exception.RequestAssertionException;
 import br.com.concretesolutions.requestmatcher.model.HttpMethod;
 import okhttp3.MediaType;
@@ -24,7 +25,10 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(constants = BuildConfig.class, sdk = 23)
@@ -78,18 +82,24 @@ public class ExceptionInStatementTest {
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
-                        containsString("methodMatcher = is <DELETE>"),
-                        containsString("methodMatcher = is <POST>"),
-                        containsString("methodMatcher = is <PUT>"),
-                        containsString("methodMatcher = is <GET>"),
-                        containsString("methodMatcher = is <PATCH>,\n" +
-                                "\torderMatcher = is <2>")
+                        containsString("method: is <POST>"),
+                        containsString("method: is <PUT>"),
+                        containsString("method: is <GET>"),
+                        containsString("method: is <PATCH>"),
+                        containsString("request order: is <2>"),
+                        containsString(RequestMatchersGroup.ORDER_MSG),
+                        containsString(RequestMatchersGroup.METHOD_MSG),
+                        containsString(RequestMatchersGroup.QUERIES_MSG)
                 ));
 
-        server.addFixture(201, "body.json").ifRequestMatches().methodIs(HttpMethod.GET);
+        server.addFixture(201, "body.json")
+                .ifRequestMatches()
+                .methodIs(HttpMethod.PATCH)
+                .queriesMatches(is(hasEntry(is("key"), any(String.class))));
         server.addFixture(201, "body.json").ifRequestMatches().methodIs(HttpMethod.POST);
         server.addFixture(201, "body.json").ifRequestMatches().methodIs(HttpMethod.PUT);
         server.addFixture(201, "body.json").ifRequestMatches().methodIs(HttpMethod.DELETE);
+        server.addFixture(201, "body.json").ifRequestMatches().methodIs(HttpMethod.GET);
         server.addFixture(201, "body.json").ifRequestMatches().methodIs(HttpMethod.PATCH).orderIs(2);
 
         this.request = new Request.Builder()

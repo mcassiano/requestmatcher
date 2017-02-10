@@ -8,7 +8,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import br.com.concretesolutions.requestmatcher.exception.NoMatchersForRequestException;
-import br.com.concretesolutions.requestmatcher.exception.OrderException;
 import br.com.concretesolutions.requestmatcher.exception.RequestAssertionException;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
@@ -18,50 +17,47 @@ import okhttp3.mockwebserver.SocketPolicy;
 public final class MatcherDispatcher extends Dispatcher {
 
     private static final Logger logger = Logger.getLogger(MatcherDispatcher.class.getName());
-    private static final String
-            ASSERT_HEADER = "REQUEST-ASSERT";
+    private static final String ASSERT_HEADER = "REQUEST-ASSERT";
+    private static final String DEFAULT_MESSAGE = "Unexpected exception during assertion.";
 
-    protected final Set<ResponseWithMatcher> responseSet = Collections.newSetFromMap(new ConcurrentHashMap<ResponseWithMatcher, Boolean>());
+    private final AtomicInteger order = new AtomicInteger();
+    private final Set<ResponseWithMatcher> responseSet = Collections.newSetFromMap(
+            new ConcurrentHashMap<ResponseWithMatcher, Boolean>()
+    );
+
     private RequestAssertionException assertionError;
-    private AtomicInteger order = new AtomicInteger();
 
     @Override
     public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
 
-        Thread.sleep(50); // simulate at least a closer to reality delay
-
         final int currentOrder = order.incrementAndGet();
 
-        final StringBuffer notMatchedAssertions = new StringBuffer();
+        int matcherOrder = 0;
+        final NoMatchersForRequestException.Builder builder =
+                new NoMatchersForRequestException.Builder(request);
+
         for (ResponseWithMatcher response : responseSet) {
 
             final RequestMatchersGroup matcher = response.getMatcher();
 
             if (matcher != null) {
                 try {
-                    matcher.doAssert(request);
-                    matcher.assertOrder(currentOrder);
+                    matcher.doAssert(request, currentOrder);
                     responseSet.remove(response);
                     return response.getResponse(); // return proper response
-                } catch (AssertionError ignored) {
+                } catch (AssertionError assertionError) {
+                    builder.appendAssertionError(++matcherOrder, assertionError, matcher);
                     // continue
-                    notMatchedAssertions.append(ignored.toString()).append('\n');
-                } catch (OrderException e) {
-                    this.assertionError = new RequestAssertionException("Wrong orderIs of requests.", e);
-                    return new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END); // disconnect
                 } catch (Exception e) {
-                    this.assertionError = new RequestAssertionException("Unexpected exception during assertion.", e);
+                    this.assertionError = new RequestAssertionException(DEFAULT_MESSAGE, e);
                     logger.log(Level.SEVERE, "Error while doing assert", e);
                     return response.getResponse(); // return response but keep exception
                 }
             }
         }
 
-        this.assertionError =
-                new RequestAssertionException(
-                        "Unexpected exception during assertion.",
-                        new NoMatchersForRequestException(request, notMatchedAssertions, responseSet));
-
+        // noinspection ThrowableInstanceNeverThrown
+        this.assertionError = new RequestAssertionException(DEFAULT_MESSAGE, builder.build());
         return new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END);
     }
 
@@ -87,12 +83,12 @@ public final class MatcherDispatcher extends Dispatcher {
         private final MockResponse response;
         private final RequestMatchersGroup matcher;
 
-        public ResponseWithMatcher(RequestMatchersGroup matcher, MockResponse response) {
+        ResponseWithMatcher(RequestMatchersGroup matcher, MockResponse response) {
             this.matcher = matcher;
             this.response = response;
         }
 
-        public MockResponse getResponse() {
+        MockResponse getResponse() {
             return response;
         }
 
