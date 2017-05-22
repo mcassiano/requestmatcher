@@ -285,7 +285,15 @@ public abstract class RequestMatcherRule implements TestRule {
 
         if (dispatcher.size() != 0) {
             try {
-                fail("There are fixtures that were not used.");
+                StringBuilder errorHint = new StringBuilder();
+                for (MatcherDispatcher.ResponseWithMatcher remainingResponse : dispatcher.getResponseSet()) {
+                    String matcher = remainingResponse.getMatcher().toString();
+                    String response = remainingResponse.getResponse().toString();
+                    errorHint.append("Not used Matcher:       ").append(matcher).append('\n')
+                            .append( "with expected response: ").append(response)
+                            .append("\n---------------------\n");
+                }
+                fail("There are fixtures that were not used:\n" + errorHint.toString());
             } catch (AssertionError e) {
                 throw new RequestAssertionException("Failed assertion.", e);
             }

@@ -69,6 +69,10 @@ public final class MatcherDispatcher extends Dispatcher {
         return responseSet.size();
     }
 
+    public Set<ResponseWithMatcher> getResponseSet() {
+        return responseSet;
+    }
+
     public RequestMatchersGroup addFixture(MockResponse response) {
         return addFixture(response, new RequestMatchersGroup());
     }
