@@ -1,5 +1,7 @@
 package br.com.concretesolutions.requestmatcher;
 
+import android.support.annotation.NonNull;
+
 import org.hamcrest.Matcher;
 
 import java.util.HashMap;
@@ -20,6 +22,14 @@ import static org.hamcrest.Matchers.isEmptyOrNullString;
  */
 public class RequestMatchersGroup {
 
+    public static final String METHOD_MSG = "METHOD did NOT match.";
+    public static final String PATH_MSG = "PATH did NOT match.";
+    public static final String QUERIES_MSG = "QUERY PARAMETERS did NOT match.";
+    public static final String HEADERS_MSG = "HEADERS did NOT match.";
+    public static final String BODY_MSG = "BODY did NOT match.";
+    public static final String JSON_MSG = "JSON BODY did NOT match.";
+    public static final String ORDER_MSG = "REQUEST ORDER did NOT match.";
+
     private Matcher<String> bodyMatcher;
     private Matcher<String> pathMatcher;
     private Matcher<HttpMethod> methodMatcher;
@@ -31,14 +41,14 @@ public class RequestMatchersGroup {
     /**
      * Main assert method called in the {@link okhttp3.mockwebserver.MockWebServer} dispatching.
      */
-    public void doAssert(RecordedRequest request) {
+    public void doAssert(@NonNull final RecordedRequest request, final int currentOrder) {
 
         if (methodMatcher != null) {
-            assertThat(HttpMethod.forRequest(request), methodMatcher);
+            assertThat(METHOD_MSG, HttpMethod.forRequest(request), methodMatcher);
         }
 
         if (pathMatcher != null) {
-            assertThat(RequestUtils.getPathOnly(request), pathMatcher);
+            assertThat(PATH_MSG, RequestUtils.getPathOnly(request), pathMatcher);
         }
 
         final String path = request.getPath();
@@ -46,31 +56,30 @@ public class RequestMatchersGroup {
         if (queryMatcher != null) {
 
             if (!path.contains("?")) {
-                assertThat(new HashMap<String, String>(0), queryMatcher);
+                assertThat(QUERIES_MSG, new HashMap<String, String>(0), queryMatcher);
             } else {
-                assertThat(RequestUtils.buildQueryMap(path), queryMatcher);
+                assertThat(QUERIES_MSG, RequestUtils.buildQueryMap(path), queryMatcher);
             }
         }
 
         if (headersMatcher != null) {
-            assertThat(RequestUtils.buildHeadersMap(request.getHeaders()), headersMatcher);
+            assertThat(HEADERS_MSG,
+                    RequestUtils.buildHeadersMap(request.getHeaders()), headersMatcher);
         }
 
         // clone the body! perhaps we need the request body for a future assertion.
-        final String body = request.getBody().buffer().clone().readUtf8();
+        final String body = request.getBody().clone().readUtf8();
 
         if (bodyMatcher != null) {
-            assertThat(body, bodyMatcher);
+            assertThat(BODY_MSG, body, bodyMatcher);
         }
 
         if (jsonMatcher != null) {
-            assertThat(body, jsonMatcher);
+            assertThat(JSON_MSG, body, jsonMatcher);
         }
-    }
 
-    public void assertOrder(int currentOrder) {
         if (orderMatcher != null) {
-            assertThat(currentOrder, orderMatcher);
+            assertThat(ORDER_MSG, currentOrder, orderMatcher);
         }
     }
 
@@ -164,19 +173,50 @@ public class RequestMatchersGroup {
         }
     }
 
+    public StringBuilder buildExpectedMatchers(@NonNull final StringBuilder sb) {
+
+        sb.append("Request matchers group:\n");
+
+        if (methodMatcher != null) {
+            sb.append(" - method: ").append(methodMatcher).append('\n');
+        }
+
+        if (pathMatcher != null) {
+            sb.append(" - path: ").append(pathMatcher).append('\n');
+        }
+
+        if (queryMatcher != null) {
+            sb.append(" - query parameters: ").append(queryMatcher).append('\n');
+        }
+
+        if (headersMatcher != null) {
+            sb.append(" - headers: ").append(headersMatcher).append('\n');
+        }
+
+        if (bodyMatcher != null) {
+            sb.append(" - body: ").append(bodyMatcher).append('\n');
+        }
+
+        if (jsonMatcher != null) {
+            sb.append(" - JSON body: ").append(jsonMatcher).append('\n');
+        }
+
+        if (orderMatcher != null) {
+            sb.append(" - request order: ").append(orderMatcher).append('\n');
+        }
+
+        return sb;
+    }
+
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("RequestMatchersGroup{");
-
-        if (bodyMatcher != null) { sb.append("\n\tbodyMatcher = ").append(bodyMatcher); }
-        if (jsonMatcher != null) { sb.append("\n\tjsonMatcher = ").append(jsonMatcher); }
-        if (pathMatcher != null) { sb.append(",\n\tpathMatcher = ").append(pathMatcher); }
-        if (methodMatcher != null) { sb.append(",\n\tmethodMatcher = ").append(methodMatcher); }
-        if (orderMatcher != null) { sb.append(",\n\torderMatcher = ").append(orderMatcher); }
-        if (queryMatcher != null) { sb.append(",\n\tqueryMatcher = ").append(queryMatcher); }
-        if (headersMatcher != null) { sb.append(",\n\theadersMatcher = ").append(headersMatcher); }
-
-        sb.append("\n}");
-        return sb.toString();
+        return new StringBuilder("RequestMatchersGroup{bodyMatcher=").append(bodyMatcher)
+                .append(", pathMatcher=").append(pathMatcher)
+                .append(", methodMatcher=").append(methodMatcher)
+                .append(", orderMatcher=").append(orderMatcher)
+                .append(", queryMatcher=").append(queryMatcher)
+                .append(", headersMatcher=").append(headersMatcher)
+                .append(", jsonMatcher=").append(jsonMatcher)
+                .append('}').toString();
     }
 }

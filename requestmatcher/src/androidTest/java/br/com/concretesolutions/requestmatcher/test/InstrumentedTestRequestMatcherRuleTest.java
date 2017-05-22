@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import br.com.concretesolutions.requestmatcher.InstrumentedTestRequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
+import br.com.concretesolutions.requestmatcher.RequestMatchersGroup;
 import br.com.concretesolutions.requestmatcher.exception.RequestAssertionException;
 import br.com.concretesolutions.requestmatcher.model.HttpMethod;
 import okhttp3.MediaType;
@@ -75,7 +76,11 @@ public class InstrumentedTestRequestMatcherRuleTest {
     public void failsIfExpectedNoBodyButOneWasProvided() throws IOException {
 
         exceptionRule.expect(RequestAssertionException.class);
-        exceptionRule.expectMessage(containsString("bodyMatcher = (null or an empty string)"));
+        exceptionRule.expectMessage(
+                allOf(
+                        containsString("body: (null or an empty string)"),
+                        containsString(RequestMatchersGroup.BODY_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -93,7 +98,11 @@ public class InstrumentedTestRequestMatcherRuleTest {
     public void failsIfExpectedPathIsDifferent() throws IOException {
 
         exceptionRule.expect(RequestAssertionException.class);
-        exceptionRule.expectMessage(containsString("pathMatcher = is \"/post\""));
+        exceptionRule.expectMessage(
+                allOf(
+                        containsString("path: is \"/post\""),
+                        containsString(RequestMatchersGroup.PATH_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -112,7 +121,10 @@ public class InstrumentedTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("queryMatcher = map containing [\"key\"->\"value\"]"));
+                allOf(
+                        containsString("query parameters: map containing [\"key\"->\"value\"]"),
+                        containsString(RequestMatchersGroup.QUERIES_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -168,7 +180,10 @@ public class InstrumentedTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("headersMatcher = map containing [\"key\"->\"value\"]"));
+                allOf(
+                        containsString("headers: map containing [\"key\"->\"value\"]"),
+                        containsString(RequestMatchersGroup.HEADERS_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -206,7 +221,10 @@ public class InstrumentedTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("bodyMatcher = a string containing \"\\\"property\\\": \\\"value\\\"\""));
+                allOf(
+                        containsString("body: a string containing \"\\\"property\\\": \\\"value\\\"\""),
+                        containsString(RequestMatchersGroup.BODY_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -249,11 +267,11 @@ public class InstrumentedTestRequestMatcherRuleTest {
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
-                        containsString("bodyMatcher = a string containing \"\\\"property\\\": \\\"value\\\"\""),
-                        containsString("pathMatcher = is \"/post\""),
-                        containsString("methodMatcher = is <POST>"),
-                        containsString("queryMatcher = map containing [\"key\"->\"value\"]"),
-                        containsString("headersMatcher = map containing [\"key\"->\"value\"]")
+                        containsString("body: a string containing \"\\\"property\\\": \\\"value\\\"\""),
+                        containsString("path: is \"/post\""),
+                        containsString("method: is <POST>"),
+                        containsString("query parameters: map containing [\"key\"->\"value\"]"),
+                        containsString("headers: map containing [\"key\"->\"value\"]")
                 ));
 
         server.addFixture(200, "body.json")
@@ -278,7 +296,10 @@ public class InstrumentedTestRequestMatcherRuleTest {
 
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
-                containsString("queryMatcher = map containing [\"key\"->\"value\"]"));
+                allOf(
+                        containsString("query parameters: map containing [\"key\"->\"value\"]"),
+                        containsString(RequestMatchersGroup.QUERIES_MSG)
+                ));
 
         server.addFixture(200, "body.json")
                 .ifRequestMatches()
@@ -326,8 +347,8 @@ public class InstrumentedTestRequestMatcherRuleTest {
     }
 
     @Test
-    public void canAssertRequestBodyMultipleTimes() throws Exception {
-        // prepare
+    public void canAssertRequestBodyMultipleTimes() throws IOException {
+
         String jsonRequestBody0 = "{\"key\" : 0}";
         String jsonRequestBody1 = "{\"key\" : 1}";
 
@@ -353,11 +374,7 @@ public class InstrumentedTestRequestMatcherRuleTest {
                 .orderIs(2)
                 .bodyMatches(equalTo(jsonRequestBody1));
 
-        // execute
         client.newCall(request0).execute();
         client.newCall(request1).execute();
-
-        // verify
-        // no exception
     }
 }

@@ -1,5 +1,7 @@
 package br.com.concretesolutions.requestmatcher.test;
 
+import android.support.annotation.NonNull;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -11,20 +13,22 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import br.com.concretesolutions.requestmatcher.BuildConfig;
 import br.com.concretesolutions.requestmatcher.LocalTestRequestMatcherRule;
-import br.com.concretesolutions.requestmatcher.MatcherDispatcher;
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.RequestMatchersGroup;
 import br.com.concretesolutions.requestmatcher.exception.NoMatchersForRequestException;
 import br.com.concretesolutions.requestmatcher.exception.RequestAssertionException;
+import okhttp3.Headers;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.RecordedRequest;
+import okio.Buffer;
 
 import static org.hamcrest.Matchers.is;
 
@@ -41,8 +45,9 @@ public class CustomRequestMatcherTest {
             .around(server);
 
     private OkHttpClient client;
-    private final NoMatchersForRequestException expectedAssertionError =
-            new NoMatchersForRequestException(Collections.<MatcherDispatcher.ResponseWithMatcher>emptySet());
+
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+    private NoMatchersForRequestException expectedAssertionError;
 
     class CustomMatcher extends RequestMatchersGroup {
 
@@ -54,8 +59,8 @@ public class CustomRequestMatcherTest {
         }
 
         @Override
-        public void doAssert(RecordedRequest request) {
-            super.doAssert(request);
+        public void doAssert(@NonNull RecordedRequest request, int currentOrder) {
+            super.doAssert(request, currentOrder);
 
             if (shouldThrow) {
                 throw expectedAssertionError;
@@ -64,10 +69,26 @@ public class CustomRequestMatcherTest {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(2, TimeUnit.SECONDS)
                 .readTimeout(2, TimeUnit.SECONDS)
+                .build();
+
+        final Buffer buffer = new Buffer();
+        RequestBody
+                .create(MediaType.parse("application/json"), "{}")
+                .writeTo(buffer);
+
+        final RecordedRequest recordedRequest = new RecordedRequest("GET / ", // request line
+                Headers.of("Content-type", "application/json"), // headers
+                null, // chunksizes
+                2, // body size
+                buffer, // Buffer
+                0, // sequence number
+                null);  // Socket
+
+        expectedAssertionError = new NoMatchersForRequestException.Builder(recordedRequest)
                 .build();
     }
 
