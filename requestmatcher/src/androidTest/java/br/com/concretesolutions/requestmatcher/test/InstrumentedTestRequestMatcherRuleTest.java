@@ -377,4 +377,64 @@ public class InstrumentedTestRequestMatcherRuleTest {
         client.newCall(request0).execute();
         client.newCall(request1).execute();
     }
+
+    @Test
+    public void canKeepOrderOfFixtures() throws IOException {
+        // prepare
+        String path = "/same/path";
+        Request request0 = new Request.Builder()
+                .url(server.url(path).toString())
+                .get()
+                .build();
+        Request request1 = new Request.Builder()
+                .url(server.url(path).toString())
+                .get()
+                .build();
+
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(2)
+                .pathIs(path);
+        server.addFixture(201, "body.json") // <- code = 201 must be the first one!
+                .ifRequestMatches()
+                .orderIs(1)
+                .pathIs(path);
+
+        // execute
+        Response response0 = client.newCall(request0).execute();
+        Response response1 = client.newCall(request1).execute();
+
+        // verify
+        assertThat(response0.code(), is(201));
+        assertThat(response1.code(), is(200));
+    }
+
+    @Test
+    public void informsAboutNotUsedFixture() throws IOException {
+        // prepare
+        String path = "/same/path";
+        Request request0 = new Request.Builder()
+                .url(server.url(path).toString())
+                .get()
+                .build();
+        server.addFixture(201, "body.json")
+                .ifRequestMatches()
+                .orderIs(1)
+                .pathIs(path);
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(2)
+                .pathIs(path);
+        server.addFixture(500, "body.json")
+                .ifRequestMatches()
+                .hasEmptyBody()
+                .pathIs("/some/different/path");
+
+        // execute & verify
+        exceptionRule.expect(RequestAssertionException.class);
+        exceptionRule.expectMessage(containsString("200"));
+        exceptionRule.expectMessage(containsString("/some/different/path"));
+
+        Response response0 = client.newCall(request0).execute();
+    }
 }
