@@ -20,19 +20,19 @@ import static org.junit.Assert.fail;
 
 /**
  * A wrapping rule around {@link MockWebServer} to ease mocking. This provides:
- *
+ * <p>
  * <ul>
- *
+ * <p>
  * <li>Fixtures setup: you can have a folder named fixtures in your resources and this rule will
  * load them for you and put them in your response's body</li>
- *
+ * <p>
  * <li>Status code setup: you can pass a response's status code when enqueuing</li>
- *
+ * <p>
  * <li>Request assertions: when enqueuing you can add assertions to ensure that the request arrived
  * is the one expected.</li>
- *
+ * <p>
  * </ul> <p>
- *
+ * <p>
  * This rule provides helper methods for enqueuing responses with the corresponding request's
  * assertions. When using one of the mockResponse methods here the return is a {@link
  * RequestMatchersGroup} instance for easy method chaining.
@@ -285,12 +285,15 @@ public abstract class RequestMatcherRule implements TestRule {
 
         if (dispatcher.size() != 0) {
             try {
-                StringBuilder errorHint = new StringBuilder();
+                final StringBuilder errorHint = new StringBuilder(100);
                 for (MatcherDispatcher.ResponseWithMatcher remainingResponse : dispatcher.getResponseSet()) {
-                    String matcher = remainingResponse.getMatcher().toString();
-                    String response = remainingResponse.getResponse().toString();
-                    errorHint.append("Not used Matcher:       ").append(matcher).append('\n')
-                            .append( "with expected response: ").append(response)
+
+                    final String matcher = remainingResponse.getMatcher().toString();
+                    final String response = remainingResponse.getResponse().toString();
+                    errorHint.append("Not used matcher:       ")
+                            .append(matcher)
+                            .append("\nwith expected response: ")
+                            .append(response)
                             .append("\n---------------------\n");
                 }
                 fail("There are fixtures that were not used:\n" + errorHint.toString());

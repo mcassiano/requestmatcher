@@ -364,8 +364,15 @@ public class LocalTestRequestMatcherRuleTest {
     @Test
     public void failsIfEnqueuedRequestsAreNotUsed() {
         exceptionRule.expect(RequestAssertionException.class);
-        exceptionRule.expectMessage(containsString("Failed assertion. There are fixtures that were not used."));
-        server.addFixture(200, "body.json");
+        exceptionRule.expectMessage(
+                allOf(
+                        containsString("There are fixtures that were not used:"),
+                        containsString("Not used matcher:"),
+                        containsString("RequestMatchersGroup{"),
+                        containsString("pathMatcher=is \"/somepath\"")));
+
+
+        server.addFixture(200, "body.json").ifRequestMatches().pathIs("/somepath");
     }
 
     @Test

@@ -4,8 +4,8 @@ apply from: "$rootDir/tools/publish.gradle"
 apply from: "$rootDir/tools/jacoco.gradle"
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdkVersion 26
+    buildToolsVersion "26.0.0"
 
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
@@ -25,28 +25,32 @@ android {
     }
 }
 
-final okhttpVersion = '3.4.1'
+final junit = '4.12'
+final jsonPathAssert = '2.2.0'
+final hamcrest = '1.3'
+final okhttpVersion = '3.8.0'
 final testRunner = '0.5'
 
 dependencies {
 
-    provided 'junit:junit:4.12'
-    provided 'com.jayway.jsonpath:json-path-assert:2.2.0'
-    provided 'org.hamcrest:hamcrest-all:1.3'
+    provided "junit:junit:$junit"
+    provided "com.jayway.jsonpath:json-path-assert:$jsonPathAssert"
+    provided "org.hamcrest:hamcrest-all:$hamcrest"
     provided "com.squareup.okhttp3:mockwebserver:$okhttpVersion"
     provided "com.android.support.test:runner:$testRunner"
 
-    testCompile 'junit:junit:4.12'
-    testCompile 'com.jayway.jsonpath:json-path-assert:2.2.0'
-    testCompile 'org.hamcrest:hamcrest-all:1.3'
+    testCompile "junit:junit:$junit"
+    testCompile "com.jayway.jsonpath:json-path-assert:$jsonPathAssert"
+    testCompile "org.hamcrest:hamcrest-all:$hamcrest"
     testCompile "com.squareup.okhttp3:mockwebserver:$okhttpVersion"
     testCompile "com.squareup.okhttp3:okhttp:$okhttpVersion"
-    testCompile 'org.robolectric:robolectric:3.1.2'
+    testCompile 'org.robolectric:robolectric:3.3.2'
+    testCompile 'org.mockito:mockito-all:1.10.19'
 
     androidTestCompile "com.squareup.okhttp3:mockwebserver:$okhttpVersion"
     androidTestCompile "com.squareup.okhttp3:okhttp:$okhttpVersion"
     androidTestCompile "com.android.support.test.espresso:espresso-core:2.2.2"
     androidTestCompile "com.android.support.test:runner:0.5"
-    androidTestCompile 'com.android.support:support-annotations:25.0.0'
+    androidTestCompile 'com.android.support:support-annotations:25.4.0'
 }
 

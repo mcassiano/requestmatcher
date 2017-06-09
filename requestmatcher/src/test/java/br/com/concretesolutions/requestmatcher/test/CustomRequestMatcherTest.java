@@ -13,6 +13,8 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.util.concurrent.TimeUnit;
 
 import br.com.concretesolutions.requestmatcher.BuildConfig;
@@ -31,6 +33,8 @@ import okhttp3.mockwebserver.RecordedRequest;
 import okio.Buffer;
 
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(constants = BuildConfig.class, sdk = 23)
@@ -80,13 +84,20 @@ public class CustomRequestMatcherTest {
                 .create(MediaType.parse("application/json"), "{}")
                 .writeTo(buffer);
 
-        final RecordedRequest recordedRequest = new RecordedRequest("GET / ", // request line
-                Headers.of("Content-type", "application/json"), // headers
-                null, // chunksizes
-                2, // body size
-                buffer, // Buffer
-                0, // sequence number
-                null);  // Socket
+        final InetAddress inetAddressMock = mock(InetAddress.class);
+        when(inetAddressMock.getHostName()).thenReturn("localhost");
+
+        final Socket mock = mock(Socket.class);
+        when(mock.getInetAddress()).thenReturn(inetAddressMock);
+
+        final RecordedRequest recordedRequest = new RecordedRequest(
+                "GET / ",
+                Headers.of("Content-type", "application/json"),
+                null,
+                2,
+                buffer,
+                0,
+                mock);
 
         expectedAssertionError = new NoMatchersForRequestException.Builder(recordedRequest)
                 .build();
