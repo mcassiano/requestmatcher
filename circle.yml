@@ -6,6 +6,7 @@ machine:
         version: openjdk8
     environment:
         ANDROID_HOME: /usr/local/android-sdk-linux
+        QEMU_AUDIO_DRV: none # flag for QEMU to disable audio (faster emulators)
 
 dependencies:
     pre:
@@ -13,11 +14,15 @@ dependencies:
         - echo y | android update sdk --no-ui --all --filter "platform-tools"
         - echo y | android update sdk --no-ui --all --filter "android-26"
         - echo y | android update sdk --no-ui --all --filter "build-tools-26.0.0"
-        - echo y | android update sdk --no-ui --all --filter "extra-google-google_play_services"
-        - echo y | android update sdk --no-ui --all --filter "extra-google-m2repository"
     override:
         - ANDROID_HOME=/usr/local/android-sdk-linux ./gradlew dependencies
 
 test:
     override:
-        - ./gradlew check --console=plain --stacktrace --info
+        - emulator -avd circleci-android24 -no-window:
+                    background: true
+                    parallel: true
+        - circle-android wait-for-boot
+        - ./gradlew check fullCoverageReport --console=plain --stacktrace --info
+        - cp -r requestmatcher/build/outputs $CIRCLE_ARTIFACTS
+        - cp -r requestmatcher/build/outputs/androidTest-results/* $CIRCLE_TEST_REPORTS

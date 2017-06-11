@@ -6,15 +6,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import br.com.concretesolutions.requestmatcher.BuildConfig;
-import br.com.concretesolutions.requestmatcher.LocalTestRequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.RequestMatchersGroup;
 import br.com.concretesolutions.requestmatcher.exception.RequestAssertionException;
@@ -30,12 +25,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 
-@RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = 23)
-public class ExceptionInStatementTest {
+public abstract class ExceptionInStatementTest extends BaseTest {
 
     private final ExpectedException exceptionRule = ExpectedException.none();
-    private final RequestMatcherRule server = new LocalTestRequestMatcherRule();
+    private final RequestMatcherRule server = getRequestMatcherRule();
 
     @Rule
     public TestRule chain = RuleChain

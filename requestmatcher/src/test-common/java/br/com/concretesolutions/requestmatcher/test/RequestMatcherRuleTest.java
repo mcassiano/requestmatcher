@@ -6,15 +6,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import br.com.concretesolutions.requestmatcher.BuildConfig;
-import br.com.concretesolutions.requestmatcher.LocalTestRequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
 import br.com.concretesolutions.requestmatcher.RequestMatchersGroup;
 import br.com.concretesolutions.requestmatcher.exception.RequestAssertionException;
@@ -31,16 +26,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-@RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = 23)
-public class LocalTestRequestMatcherRuleTest {
+public abstract class RequestMatcherRuleTest extends BaseTest {
 
     private final ExpectedException exceptionRule = ExpectedException.none();
-    private final RequestMatcherRule server = new LocalTestRequestMatcherRule();
+    private final RequestMatcherRule server = getRequestMatcherRule();
 
     @Rule
     public TestRule chain = RuleChain
@@ -75,7 +70,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .bodyMatches(containsString("\"property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/post").toString())
+                .url(server.url("/post"))
                 .header("key", "value")
                 .post(RequestBody.create(MediaType.parse("application/json"), "{\"property\": \"value\"}"))
                 .build();
@@ -86,7 +81,7 @@ public class LocalTestRequestMatcherRuleTest {
         assertThat(resp.peekBody(1_000_000).source().readUtf8(), containsString("property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString())
+                .url(server.url("/get"))
                 .get()
                 .build();
 
@@ -111,7 +106,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .hasEmptyBody(); // NO BODY
 
         this.request = new Request.Builder()
-                .url(server.url("/post").toString())
+                .url(server.url("/post"))
                 .post(RequestBody.create(MediaType.parse("application/json"), "{}")) // YES BODY
                 .build();
 
@@ -133,7 +128,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .pathIs("/post");
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString()) // different path
+                .url(server.url("/get")) // different path
                 .get()
                 .build();
 
@@ -155,7 +150,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .queriesContain("key", "value");
 
         this.request = new Request.Builder()
-                .url(server.url("/get?no_key=no_value").toString())
+                .url(server.url("/get?no_key=no_value"))
                 .get()
                 .build();
 
@@ -170,7 +165,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .queriesContain("key", "value");
 
         this.request = new Request.Builder()
-                .url(server.url("/get?key=value").toString()) // different path
+                .url(server.url("/get?key=value")) // different path
                 .get()
                 .build();
 
@@ -188,7 +183,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .headersContain("key", "value");
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString()) // different path
+                .url(server.url("/get")) // different path
                 .header("key", "value")
                 .get()
                 .build();
@@ -214,7 +209,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .headersContain("key", "value");
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString()) // different path
+                .url(server.url("/get")) // different path
                 .get()
                 .build();
 
@@ -229,7 +224,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .bodyMatches(containsString("\"property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/post").toString())
+                .url(server.url("/post"))
                 .header("key", "value")
                 .post(RequestBody.create(MediaType.parse("application/json"), "{\"property\": \"value\"}"))
                 .build();
@@ -255,7 +250,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .bodyMatches(containsString("\"property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/body").toString())
+                .url(server.url("/body"))
                 .post(RequestBody.create(MediaType.parse("application/json"), "{\"another\": \"someother\"}"))
                 .build();
 
@@ -274,7 +269,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .bodyMatches(containsString("\"property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/post?key=value").toString())
+                .url(server.url("/post?key=value"))
                 .header("key", "value")
                 .post(RequestBody.create(MediaType.parse("application/json"), "{\"property\": \"value\"}"))
                 .build();
@@ -309,7 +304,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .bodyMatches(containsString("\"property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/post?key=value").toString())
+                .url(server.url("/post?key=value"))
                 .header("key", "value")
                 .post(RequestBody.create(MediaType.parse("application/json"), "{\"another\": \"someother\"}"))
                 .build();
@@ -332,7 +327,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .hasEmptyBody();
 
         this.request = new Request.Builder()
-                .url(server.url("/post").toString())
+                .url(server.url("/post"))
                 .post(RequestBody.create(MediaType.parse("application/json"), "{\"property\": \"value\"}"))
                 .build();
 
@@ -354,7 +349,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .queriesContain("key", "value");
 
         this.request = new Request.Builder()
-                .url(server.url("/post").toString())
+                .url(server.url("/post"))
                 .get()
                 .build();
 
@@ -396,7 +391,7 @@ public class LocalTestRequestMatcherRuleTest {
                 );
 
         this.request = new Request.Builder()
-                .url(server.url("/post?key=value").toString())
+                .url(server.url("/post?key=value"))
                 .header("key", "value")
                 .post(RequestBody.create(
                         MediaType.parse("application/json"),
@@ -430,7 +425,7 @@ public class LocalTestRequestMatcherRuleTest {
                 );
 
         this.request = new Request.Builder()
-                .url(server.url("/post?key=value").toString())
+                .url(server.url("/post?key=value"))
                 .header("key", "value")
                 .post(RequestBody.create(
                         MediaType.parse("application/json"),
@@ -468,7 +463,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .bodyMatches(containsString("\"property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/post").toString())
+                .url(server.url("/post"))
                 .header("key", "value")
                 .post(RequestBody.create(MediaType.parse("application/json"), "{\"property\": \"value\"}"))
                 .build();
@@ -479,7 +474,7 @@ public class LocalTestRequestMatcherRuleTest {
         assertThat(resp.peekBody(1_000_000).source().readUtf8(), containsString("property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString())
+                .url(server.url("/get"))
                 .get()
                 .build();
 
@@ -497,7 +492,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .bodyMatches(containsString("\"property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/post").toString())
+                .url(server.url("/post"))
                 .header("key", "kdmlskdfm84fq9o4f083q4fnoalsjn")
                 .put(RequestBody.create(MediaType.parse("application/json"), "{\"property\": \"value\"}"))
                 .build();
@@ -519,7 +514,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .bodyMatches(containsString("\"property\": \"value\""));
 
         this.request = new Request.Builder()
-                .url(server.url("/post").toString())
+                .url(server.url("/post"))
                 .header("kdmlskdfm84fq9o4f083q4fnoalsjn", "value")
                 .put(RequestBody.create(MediaType.parse("application/json"), "{\"property\": \"value\"}"))
                 .build();
@@ -538,7 +533,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .hasNoQueries();
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString())
+                .url(server.url("/get"))
                 .get()
                 .build();
 
@@ -564,7 +559,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .hasEmptyBody();
 
         this.request = new Request.Builder()
-                .url(server.url("/get?key=value").toString())
+                .url(server.url("/get?key=value"))
                 .get()
                 .build();
 
@@ -577,7 +572,7 @@ public class LocalTestRequestMatcherRuleTest {
         server.addFixture(200, "body.json");
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString())
+                .url(server.url("/get"))
                 .get()
                 .build();
 
@@ -595,7 +590,7 @@ public class LocalTestRequestMatcherRuleTest {
         server.addFixture(200, "body.xml");
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString())
+                .url(server.url("/get"))
                 .get()
                 .build();
 
@@ -620,7 +615,7 @@ public class LocalTestRequestMatcherRuleTest {
                 .orderIs(2);
 
         this.request = new Request.Builder()
-                .url(server.url("/").toString())
+                .url(server.url("/"))
                 .get()
                 .build();
 
@@ -648,7 +643,7 @@ public class LocalTestRequestMatcherRuleTest {
         server.addFixture(200, "body.xml");
 
         this.request = new Request.Builder()
-                .url(server.url("/get").toString())
+                .url(server.url("/get"))
                 .get()
                 .build();
 
@@ -667,5 +662,141 @@ public class LocalTestRequestMatcherRuleTest {
         assertThat(resp.isSuccessful(), is(true));
         assertThat(resp.headers().get("Content-Type"), is("text/xml"));
         assertThat(resp.peekBody(1_000_000).source().readUtf8(), containsString("<xml />"));
+    }
+
+    @Test
+    public void canAssertGETRequests() throws IOException {
+
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .methodIs(HttpMethod.GET)
+                .pathMatches(is("/get"));
+
+        this.request = new Request.Builder()
+                .url(server.url("/get"))
+                .get()
+                .build();
+
+        final Response resp = client.newCall(request).execute();
+
+        assertThat(resp.isSuccessful(), is(true));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(), containsString("property\": \"value\""));
+    }
+
+    @Test
+    public void canReadBinaryFixture() {
+        final byte[] bytes = server.readBinaryFixture("screenshot.png");
+        assertThat(bytes, is(notNullValue()));
+        assertThat(bytes.length, is(63_537));
+    }
+
+    @Test
+    public void canDetectMimeTypeFromBinaryFixture() throws IOException {
+
+        server.addFixture(200, "screenshot.png")
+                .ifRequestMatches()
+                .pathIs("/binary");
+
+        this.request = new Request.Builder()
+                .url(server.url("/binary"))
+                .get()
+                .build();
+
+        final Response response = client.newCall(request).execute();
+
+        assertThat(response.code(), is(200));
+        assertThat(response.header("Content-type"), is("image/png"));
+    }
+
+    @Test
+    public void canAssertRequestBodyMultipleTimes() throws IOException {
+
+        String jsonRequestBody0 = "{\"key\" : 0}";
+        String jsonRequestBody1 = "{\"key\" : 1}";
+
+        Request request0 = new Request.Builder()
+                .url(server.url("/body/0"))
+                .post(RequestBody.create(MediaType.parse("application/json"), jsonRequestBody0))
+                .build();
+        Request request1 = new Request.Builder()
+                .url(server.url("/body/1"))
+                .post(RequestBody.create(MediaType.parse("application/json"), jsonRequestBody1))
+                .build();
+
+        // MatcherDispatcher uses a Set for this responses. So it is hard to ensure that
+        // matcher 1 is ordered first... but exactly this must be tested - the body of
+        // request1 must be read two times!
+        // the set implementation seems to keep the insertion order...
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(1)
+                .bodyMatches(equalTo(jsonRequestBody0));
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(2)
+                .bodyMatches(equalTo(jsonRequestBody1));
+
+        client.newCall(request0).execute();
+        client.newCall(request1).execute();
+    }
+
+    @Test
+    public void canKeepOrderOfFixtures() throws IOException {
+        // prepare
+        String path = "/same/path";
+        Request request0 = new Request.Builder()
+                .url(server.url(path))
+                .get()
+                .build();
+        Request request1 = new Request.Builder()
+                .url(server.url(path))
+                .get()
+                .build();
+
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(2)
+                .pathIs(path);
+        server.addFixture(201, "body.json") // <- code = 201 must be the first one!
+                .ifRequestMatches()
+                .orderIs(1)
+                .pathIs(path);
+
+        // execute
+        Response response0 = client.newCall(request0).execute();
+        Response response1 = client.newCall(request1).execute();
+
+        // verify
+        assertThat(response0.code(), is(201));
+        assertThat(response1.code(), is(200));
+    }
+
+    @Test
+    public void informsAboutNotUsedFixture() throws IOException {
+        // prepare
+        String path = "/same/path";
+        Request request0 = new Request.Builder()
+                .url(server.url(path))
+                .get()
+                .build();
+        server.addFixture(201, "body.json")
+                .ifRequestMatches()
+                .orderIs(1)
+                .pathIs(path);
+        server.addFixture(200, "body.json")
+                .ifRequestMatches()
+                .orderIs(2)
+                .pathIs(path);
+        server.addFixture(500, "body.json")
+                .ifRequestMatches()
+                .hasEmptyBody()
+                .pathIs("/some/different/path");
+
+        // execute & verify
+        exceptionRule.expect(RequestAssertionException.class);
+        exceptionRule.expectMessage(containsString("200"));
+        exceptionRule.expectMessage(containsString("/some/different/path"));
+
+        client.newCall(request0).execute(); // will fail with message of non used matchers
     }
 }

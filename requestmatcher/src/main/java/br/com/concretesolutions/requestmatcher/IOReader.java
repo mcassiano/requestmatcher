@@ -1,6 +1,5 @@
 package br.com.concretesolutions.requestmatcher;
 
-import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -76,7 +75,7 @@ final class IOReader {
 
     static String mimeTypeFromExtension(String path) {
 
-        if (TextUtils.isEmpty(path)) {
+        if (path == null || path.length() == 0) {
             return null;
         }
 
@@ -117,5 +116,6 @@ final class IOReader {
         }
     }
 
-    private IOReader() {}
+    private IOReader() {
+    }
 }
