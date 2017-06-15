@@ -1,6 +1,6 @@
 # RequestMatcher
 
-[![Build Status](https://circleci.com/gh/concretesolutions/requestmatcher.png?circle-token=b28528473dcb6c076cc1b91a3023f411fc78790a)](https://circleci.com/gh/concretesolutions/requestmatcher/tree/master)
+[![Build Status](https://www.bitrise.io/app/269e6113ff8a64b7/status.svg?token=bDYZw39QHx4_t-O-lkhwaQ&branch=master)](https://www.bitrise.io/app/269e6113ff8a64b7#/builds)
 
 A simple and powerful way for making assertions in your mocked API.
 
