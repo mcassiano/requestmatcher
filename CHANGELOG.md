@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2.2.0
+
+### Features
+
+- New message for non used fixtures (thanks to @cleemansen)
+- Removed dependency on Robolectric for local tests (thanks to @heitorcolangelo)
+
 ## 2.1.0
 
 ### Non-backwards compatible changes
