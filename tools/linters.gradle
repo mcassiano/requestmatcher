@@ -10,6 +10,10 @@ task checkstyle(type: Checkstyle) {
     classpath = files()
 }
 
+checkstyle {
+    toolVersion = '8.3'
+}
+
 task pmd(type: Pmd) {
     ruleSetFiles = files("${rootDir}/tools/linters/pmd-ruleset.xml")
     ruleSets = []
@@ -24,6 +28,10 @@ task pmd(type: Pmd) {
         xml { destination "$project.buildDir/reports/pmd/pmd.xml" }
         html { destination "$project.buildDir/reports/pmd/pmd.html" }
     }
+}
+
+pmd {
+    toolVersion = '5.8.1'
 }
 
 check.dependsOn 'checkstyle', 'pmd'

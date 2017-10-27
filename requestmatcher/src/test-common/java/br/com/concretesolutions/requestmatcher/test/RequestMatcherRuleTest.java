@@ -410,7 +410,8 @@ public abstract class RequestMatcherRuleTest extends BaseTest {
         exceptionRule.expect(RequestAssertionException.class);
         exceptionRule.expectMessage(
                 allOf(
-                        containsString("is json with json path \"$..[*]\" and is json with json " +
+                        containsString("is json with json path \"$\" evaluated to " +
+                                "(an instance of java.util.Map or an instance of java.util.List) and is json with json " +
                                 "path \"$['unexisting']['path']\" evaluated to is \"value\")"),
                         containsString(RequestMatchersGroup.JSON_MSG)
                 ));
