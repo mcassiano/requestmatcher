@@ -172,10 +172,11 @@ public abstract class RequestMatcherRule implements TestRule {
      * Adds a fixture to be used during the test case.
      *
      * @param fixturePath The path of the fixture inside the fixtures folder.
+     * @param values      Optional dynamic values to be replaced in the fixture file
      * @return A dsl instance {@link IfRequestMatches} for chaining
      */
-    public IfRequestMatches<RequestMatchersGroup> addFixture(String fixturePath) {
-        return addFixture(200, fixturePath);
+    public IfRequestMatches<RequestMatchersGroup> addFixture(String fixturePath, String... values) {
+        return addFixture(200, fixturePath, values);
     }
 
     /**
@@ -183,13 +184,12 @@ public abstract class RequestMatcherRule implements TestRule {
      *
      * @param fixturePath The path of the fixture inside the fixtures folder.
      * @param statusCode  The status of the mocked response.
+     * @param values      Optional dynamic values to be replaced in the fixture file
      * @return A dsl instance {@link IfRequestMatches} for chaining
      */
-    public IfRequestMatches<RequestMatchersGroup> addFixture(int statusCode, String fixturePath) {
+    public IfRequestMatches<RequestMatchersGroup> addFixture(int statusCode, String fixturePath, String... values) {
 
-        final MockResponse mockResponse = new MockResponse()
-                .setResponseCode(statusCode)
-                .setBody(readFixture(fixturePath));
+        final MockResponse mockResponse = createMockResponse(statusCode, fixturePath, values);
 
         if (guessMimeType) {
             final String mimeType = IOReader.mimeTypeFromExtension(fixturePath);
@@ -213,13 +213,15 @@ public abstract class RequestMatcherRule implements TestRule {
      *
      * @param fixturePath The path of the fixture inside the fixtures fodler.
      * @param matcher     The {@link RequestMatchersGroup} instance to use for matching.
+     * @param values      Optional dynamic values to be replaced in the fixture file
      * @return A dsl instance {@link IfRequestMatches} for chaining
      */
     public <T extends RequestMatchersGroup> IfRequestMatches<T> addFixture(String fixturePath,
-                                                                           T matcher) {
+                                                                           T matcher,
+                                                                           String... values) {
         return addResponse(new MockResponse()
                 .setResponseCode(200)
-                .setBody(readFixture(fixturePath)), matcher);
+                .setBody(replaceAndValidate(readFixture(fixturePath), values)), matcher);
     }
 
     /**
@@ -228,14 +230,38 @@ public abstract class RequestMatcherRule implements TestRule {
      * @param statusCode  The status of the mocked response.
      * @param fixturePath The path of the fixture inside the fixtures fodler.
      * @param matcher     The {@link RequestMatchersGroup} instance to use for matching.
+     * @param values      Optional dynamic values to be replaced in the fixture file
      * @return A dsl instance {@link IfRequestMatches} for chaining
      */
     public <T extends RequestMatchersGroup> IfRequestMatches<T> addFixture(int statusCode,
                                                                            String fixturePath,
-                                                                           T matcher) {
+                                                                           T matcher,
+                                                                           String... values) {
         return addResponse(new MockResponse()
                 .setResponseCode(statusCode)
-                .setBody(readFixture(fixturePath)), matcher);
+                .setBody(replaceAndValidate(readFixture(fixturePath), values)), matcher);
+    }
+
+    private MockResponse createMockResponse(int statusCode, String fixturePath, String... values) {
+        return new MockResponse()
+                .setResponseCode(statusCode)
+                .setBody(replaceAndValidate(readFixture(fixturePath), values));
+    }
+
+    private String replaceAndValidate(String fixture, String[] values) {
+        if (values == null) {
+            return fixture;
+        }
+
+        for (int i = 0; i < values.length; i++) {
+            if (!fixture.contains("{" + i + "}")) {
+                fail("Could not replace dynamic value at position " + i);
+            }
+
+            fixture = fixture.replace("{" + i + "}", values[i]);
+        }
+
+        return fixture;
     }
 
     /**
