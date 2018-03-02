@@ -195,7 +195,7 @@ public abstract class RequestMatcherRule implements TestRule {
      * Adds a template to be used during the test case, later turning it into a fixture to be used.
      *
      * @param templatePath The path of the fixture inside the fixtures folder.
-     * @return A dsl instance {@link IfRequestMatches} for chaining
+     * @return A dsl instance {@link DynamicIfRequestMatches} for chaining
      */
     public DynamicIfRequestMatches<RequestMatchersGroup> addTemplate(String templatePath) {
         return addTemplate(200, templatePath);
@@ -206,7 +206,7 @@ public abstract class RequestMatcherRule implements TestRule {
      *
      * @param templatePath The path of the fixture inside the fixtures folder.
      * @param statusCode   The status of the mocked response.
-     * @return A dsl instance {@link IfRequestMatches} for chaining
+     * @return A dsl instance {@link DynamicIfRequestMatches} for chaining
      */
     public DynamicIfRequestMatches<RequestMatchersGroup> addTemplate(int statusCode, String templatePath) {
 
