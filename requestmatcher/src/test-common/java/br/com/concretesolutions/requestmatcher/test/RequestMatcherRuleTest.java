@@ -8,6 +8,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import br.com.concretesolutions.requestmatcher.RequestMatcherRule;
@@ -799,4 +800,66 @@ public abstract class RequestMatcherRuleTest extends BaseTest {
 
         client.newCall(request0).execute(); // will fail with message of non used matchers
     }
+
+    @Test
+    public void canReplaceValuesInTemplate() throws IOException {
+
+        String timestamp = String.valueOf(new Date(1519775413753L).getTime());
+
+        server.addTemplate("json_template.json")
+                .withValueForKey("current_date", timestamp)
+                .ifRequestMatches();
+
+        this.request = new Request.Builder()
+                .url(server.url("/get"))
+                .get()
+                .build();
+
+        final Response resp = client.newCall(request).execute();
+
+        assertThat(resp.isSuccessful(), is(true));
+        assertThat(resp.headers().get("Content-Type"), is("application/json"));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(),
+                containsString("\"current_date\": \"1519775413753\""));
+    }
+
+    @Test
+    public void canReplaceValuesInTemplateWithNonSuccessfulResponse() throws IOException {
+
+        server.addTemplate(404, "json_error_template.json")
+                .withValueForKey("error", "Resource not found")
+                .ifRequestMatches();
+
+        this.request = new Request.Builder()
+                .url(server.url("/get"))
+                .get()
+                .build();
+
+        final Response resp = client.newCall(request).execute();
+
+        assertThat(resp.code() == 404, is(true));
+        assertThat(resp.headers().get("Content-Type"), is("application/json"));
+        assertThat(resp.peekBody(1_000_000).source().readUtf8(),
+                containsString("\"error_message\": \"Resource not found\""));
+    }
+
+    @Test
+    public void failsIfTemplateDoesNotHaveGivenKeys() throws IOException {
+
+        exceptionRule.expect(AssertionError.class);
+        exceptionRule.expectMessage(containsString("Could not find any template key named something"));
+
+        server.addTemplate("body.json")
+                .withValueForKey("something", "something")
+                .ifRequestMatches();
+
+        this.request = new Request.Builder()
+                .url(server.url("/get"))
+                .get()
+                .build();
+
+        client.newCall(request).execute();
+    }
+
+
 }

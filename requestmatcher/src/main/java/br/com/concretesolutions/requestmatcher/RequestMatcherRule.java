@@ -126,7 +126,7 @@ public abstract class RequestMatcherRule implements TestRule {
     public String readFixture(final String fixturePath) {
         try {
             return IOReader.read(open(fixturesRootFolder + "/" + fixturePath)) + "\n";
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException e) {
             throw new RuntimeException("Failed to read asset with path " + fixturePath, e);
         }
     }
@@ -187,25 +187,32 @@ public abstract class RequestMatcherRule implements TestRule {
      */
     public IfRequestMatches<RequestMatchersGroup> addFixture(int statusCode, String fixturePath) {
 
-        final MockResponse mockResponse = new MockResponse()
-                .setResponseCode(statusCode)
-                .setBody(readFixture(fixturePath));
+        String body = readFixture(fixturePath);
+        return addResponse(prepareMockResponse(statusCode, fixturePath, body));
+    }
 
-        if (guessMimeType) {
-            final String mimeType = IOReader.mimeTypeFromExtension(fixturePath);
+    /**
+     * Adds a template to be used during the test case, later turning it into a fixture to be used.
+     *
+     * @param templatePath The path of the fixture inside the fixtures folder.
+     * @return A dsl instance {@link IfRequestMatches} for chaining
+     */
+    public DynamicIfRequestMatches<RequestMatchersGroup> addTemplate(String templatePath) {
+        return addTemplate(200, templatePath);
+    }
 
-            if (mimeType != null) {
-                mockResponse.addHeader("Content-Type", mimeType);
-            }
-        }
+    /**
+     * Adds a template to be used during the test case, later turning it into a fixture to be used.
+     *
+     * @param templatePath The path of the fixture inside the fixtures folder.
+     * @param statusCode   The status of the mocked response.
+     * @return A dsl instance {@link IfRequestMatches} for chaining
+     */
+    public DynamicIfRequestMatches<RequestMatchersGroup> addTemplate(int statusCode, String templatePath) {
 
-        if (!defaultHeaders.isEmpty()) {
-            for (String headerKey : defaultHeaders.keySet()) {
-                mockResponse.addHeader(headerKey, defaultHeaders.get(headerKey));
-            }
-        }
-
-        return addResponse(mockResponse);
+        String templateBody = readFixture(templatePath);
+        return new DynamicIfRequestMatches<>(new RequestMatchersGroup(), dispatcher,
+                templateBody, prepareMockResponse(statusCode, templatePath, ""));
     }
 
     /**
@@ -256,6 +263,54 @@ public abstract class RequestMatcherRule implements TestRule {
         public T ifRequestMatches() {
             return group;
         }
+    }
+
+    public static class DynamicIfRequestMatches<T extends RequestMatchersGroup> extends IfRequestMatches<T> {
+
+        private final HashMap<String, String> values = new HashMap<>();
+        private final String templateBody;
+        private final MockResponse response;
+        private final MatcherDispatcher dispatcher;
+
+        private DynamicIfRequestMatches(T group, MatcherDispatcher dispatcher,
+                                        String templateBody, MockResponse mockResponse) {
+            super(group);
+            this.templateBody = templateBody;
+            this.dispatcher = dispatcher;
+            this.response = mockResponse;
+        }
+
+        @Override
+        public T ifRequestMatches() {
+            return dispatchDynamic(super.ifRequestMatches(), values);
+        }
+
+        public DynamicIfRequestMatches<T> withValueForKey(String key, String value) {
+            values.put(key, value);
+            return this;
+        }
+
+        private T dispatchDynamic(T group, HashMap<String, String> values) {
+            response.setBody(replaceValues(values));
+            dispatcher.addFixture(response, group);
+            return group;
+        }
+
+        private String replaceValues(HashMap<String, String> values) {
+            String body = templateBody;
+
+            for (String key : values.keySet()) {
+                String keyFinder = "${" + key + "}";
+
+                if (!body.contains(keyFinder))
+                    fail("Could not find any template key named " + key);
+
+                body = body.replace(keyFinder, values.get(key));
+            }
+
+            return body;
+        }
+
     }
 
     private void after(Exception exception, boolean success) throws Exception {
@@ -323,5 +378,28 @@ public abstract class RequestMatcherRule implements TestRule {
                 }
             }
         };
+    }
+
+    private MockResponse prepareMockResponse(int statusCode, String path, String body) {
+
+        final MockResponse mockResponse = new MockResponse()
+                .setResponseCode(statusCode)
+                .setBody(body);
+
+        if (guessMimeType) {
+            final String mimeType = IOReader.mimeTypeFromExtension(path);
+
+            if (mimeType != null) {
+                mockResponse.addHeader("Content-Type", mimeType);
+            }
+        }
+
+        if (!defaultHeaders.isEmpty()) {
+            for (String headerKey : defaultHeaders.keySet()) {
+                mockResponse.addHeader(headerKey, defaultHeaders.get(headerKey));
+            }
+        }
+
+        return mockResponse;
     }
 }
