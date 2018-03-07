@@ -118,10 +118,10 @@ To add a fixture all you have to do is call one of the `addFixture` methods in t
 serverRule.addFixture(200, "body.json");
 ```
 
-This will add a response with status code 200 and the contents of the file `body.json` as the body. This file, by default, must be located in a folder with name `fixtures`. This folder works different for Local Tests and Instrumented Tests.
+This will add a response with status code 200 and the contents of the file `body.json` as the body. This file, by default, must be located in a folder with name `fixtures`. This folder works differently for Local Tests and Instrumented Tests.
 
 - Local tests: these are run locally in the JVM (usually with Robolectric) and follow different conventions. Your source folder `test` may contain a folder `java` and a folder `resources`. When you compile your code it takes everything in the `resources` folder and puts in the root of your `.class` files. So, your fixtures folder must go inside `resources` folder.
-- Instrumented tests: there are run in a device or emulator (usually with Espresso or Robotium). It follows the android folder layout and so you may have an assets folder inside your `androidTest` folder. Your `fixtures` folder must go there.
+- Instrumented tests: these are run on a device or emulator (usually with Espresso or Robotium). It follows the android folder layout and so you may have an assets folder inside your `androidTest` folder. Your `fixtures` folder must go there.
 
 Because of these differences, there are two implementations of `RequestMatcherRule`: `LocalTestRequestMatcherRule` and `InstrumentedTestRequestMatcherRule`. You should use the generic type for your variable and instantiate it with the required type. Example:
 
@@ -140,6 +140,33 @@ public final RequestMatcherRule server = new InstrumentedTestRequestMatcherRule(
 The difference is that when we run an InstrumentedTest, we must pass the instrumentation context (and *NOT* the target context).
 
 More on the difference between each kind of test [here](https://medium.com/concrete-solutions/android-local-or-instrumented-tests-9da545af7777#.mmowgemc4)
+
+#### Fixture templating
+
+You can also provide templates for cases when you need dynamic values to be passed to the JSON. For
+this to work you need to provide a JSON file with keys that will be replaced by their values in runtime.
+
+A valid JSON template is:
+
+``` json 
+{
+  "current_date": "${current_date}"
+}
+```
+
+And it can be used like this:
+
+``` java
+
+String timestamp = String.valueOf(new Date(778338900L).getTime());
+
+server.addTemplate("json_template.json")
+      .withValueForKey("current_date", timestamp)
+      .ifRequestMatches("/get_current_date");
+      
+// interact with server and make response assertions
+
+```
 
 ## Configuring the `RequestMatcherRule`
 
