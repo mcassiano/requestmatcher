@@ -156,13 +156,14 @@ A valid JSON template is:
 
 And it can be used like this:
 
-``` java
+```java
 
 String timestamp = String.valueOf(new Date(778338900L).getTime());
 
 server.addTemplate("json_template.json")
       .withValueForKey("current_date", timestamp)
-      .ifRequestMatches("/get_current_date");
+      .ifRequestMatches()
+      .pathIs("/get_current_date");
       
 // interact with server and make response assertions
 
